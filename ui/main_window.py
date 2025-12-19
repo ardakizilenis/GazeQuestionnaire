@@ -51,7 +51,9 @@ class MainWindow(QMainWindow):
 
         # Logging
         self.log_rows: List[Dict[str, Any]] = []
+        self.click_rows: List[Dict[str, Any]] = []
         self.question_start_time: Optional[float] = None
+        self.last_click_time: Optional[float] = None
         self.current_qmeta: Optional[Dict[str, Any]] = None
 
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -62,6 +64,10 @@ class MainWindow(QMainWindow):
         self.log_filename = os.path.join(
             self.log_dir,
             f"gaze_questionnaire_log_{timestamp}.csv",
+        )
+        self.click_filename = os.path.join(
+            self.log_dir,
+            f"gaze_questionnaire_log_clicks_{timestamp}.csv",
         )
 
     # APIs for Questionnaire Definition
@@ -153,6 +159,12 @@ class MainWindow(QMainWindow):
             except Exception:
                 pass
 
+        if hasattr(self.current_widget, "clicked"):
+            try:
+                self.current_widget.clicked.disconnect(self.on_widget_clicked)
+            except Exception:
+                pass
+
     def show_next_question(self) -> None:
         self.disconnect_current_widget()
         self.current_index += 1
@@ -217,8 +229,12 @@ class MainWindow(QMainWindow):
         if hasattr(widget, "submitted"):
             widget.submitted.connect(self.on_question_submitted)
 
+        if hasattr(widget, "clicked"):
+            widget.clicked.connect(self.on_widget_clicked)
+
         # Logging Meta Data
         self.question_start_time = time.monotonic()
+        self.last_click_time = self.question_start_time
         self.current_qmeta = {
             "index": logical_index,
             "type": qtype,
@@ -226,6 +242,34 @@ class MainWindow(QMainWindow):
             "activation": activation,
         }
 
+    def on_widget_clicked(self, toggle_index, toggled_area):
+        if self.question_start_time is None:
+            return
+
+        now = time.monotonic()
+        time_from_start = now - self.question_start_time
+
+        if self.last_click_time is None:
+            time_since_last_click = None
+        else:
+            time_since_last_click = now - self.last_click_time
+        self.last_click_time = now
+
+        meta = self.current_qmeta or {}
+
+        if meta.get("type") == "info":
+            return
+
+        self.click_rows.append(
+            {
+                "q_index": meta.get("index"),
+                "q_type": meta.get("type"),
+                "q_toggle_index": int(toggle_index),
+                "q_click_time_no_reset": round(time_from_start, 3),
+                "q_click_time": None if time_since_last_click is None else round(time_since_last_click, 3),
+                "q_toggled_area": str(toggled_area),
+            }
+        )
 
     # Get Answer
     def on_question_submitted(self, result):
@@ -249,7 +293,7 @@ class MainWindow(QMainWindow):
                 "activation_mode": meta.get("activation"),
                 "question_text": meta.get("text"),
                 "result": repr(result),
-                "rt_sec": rt_sec,
+                "rt_sec": round(rt_sec, 3),
                 "n_toggles": getattr(widget, "log_toggles", 0),
                 "n_resets": getattr(widget, "log_resets", 0),
                 "n_backspaces": getattr(widget, "log_backspaces", 0),
@@ -276,6 +320,21 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print("Error writing Log-File:", e)
 
+    def write_clicks_to_csv(self) -> None:
+        if not self.click_rows:
+            print("No loggs have been saved")
+            return
+
+        fieldnames = ["q_index", "q_type", "q_toggle_index", "q_click_time_no_reset", "q_click_time", "q_toggled_area"]
+        try:
+            with open(self.click_filename, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(self.click_rows)
+            print(f"Click Logs saved in: {self.click_filename}")
+        except Exception as e:
+            print("Error writing Click-Logs:", e)
+
     def finish_questionnaire(self) -> None:
         print("Questionnaire terminated. Loggs written and Question finished.")
 
@@ -287,6 +346,7 @@ class MainWindow(QMainWindow):
                 print("Error stopping worker:", e)
 
         self.write_logs_to_csv()
+        self.write_clicks_to_csv()
 
         QApplication.quit()
 
@@ -301,5 +361,7 @@ class MainWindow(QMainWindow):
 
         if self.log_rows:
             self.write_logs_to_csv()
+        if self.click_rows:
+            self.write_clicks_to_csv()
 
         event.accept()

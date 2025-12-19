@@ -5,34 +5,9 @@
   },
   "items": [
     {
-      "duration": 5,
-      "text": "--------------------\n\nWelcome to the Gaze Quesionnaire\n\n--------------------",
-      "type": "info"
-    },
-    {
-      "duration": 5,
-      "text": "--------------------\n\nBLOCK I:\nDwell Time Selection\n\n--------------------",
-      "type": "info"
-    },
-    {
-      "duration": 5,
-      "text": "--------------------\n\nGaze 1-2 Seconds on an answer to select\n\n--------------------",
-      "type": "info"
-    },
-    {
-      "duration": 7,
-      "text": "QUESTION 1:\nAre you wearing Glasses right now? \n(yes/no)",
-      "type": "info"
-    },
-    {
       "activation": "dwell",
       "text": "Are you wearing Glasses right now? \n(yes/no)",
       "type": "yesno"
-    },
-    {
-      "duration": 7,
-      "text": "QUESTION 2: \nHow comfortable do you feel with Eye-Tracking? \n(Likert-Scale)",
-      "type": "info"
     },
     {
       "activation": "dwell",
@@ -134,31 +109,6 @@
       "activation": "blink",
       "text": "Describe your experience with Gaze Questionnaire with one Word.\n(Text Entry)",
       "type": "textgrid"
-    },
-    {
-      "duration": 5,
-      "text": "--------------------\n\nBLOCK III: Smooth Pursuit Selection\n\n--------------------",
-      "type": "info"
-    },
-    {
-      "duration": 5,
-      "text": "--------------------\n\nFollow a target with your gaze until it gets selected\n\n--------------------",
-      "type": "info"
-    },
-    {
-      "duration": 7,
-      "text": "QUESTION 9:\nIs 1+1 = 2 correct?\n(yes/no)",
-      "type": "info"
-    },
-    {
-      "activation": "smooth_pursuit",
-      "text": "Is 1+1=2 correct? (yes/no)",
-      "type": "sp_yesno"
-    },
-    {
-      "duration": 5,
-      "text": "--------------------\n\nThank you for participating\n\n--------------------",
-      "type": "info"
     }
   ]
 }

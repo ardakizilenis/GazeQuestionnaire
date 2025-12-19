@@ -57,9 +57,9 @@ def main():
 if __name__ == "__main__":
     main()
 
-# Jedes toggle mit Timestamp
-# Textinput -> Timestamp für JEDEN Buchstaben, allgemein: Timestamp für JEDEN "Click"
-# -> Eine große csv-Datei mit Timestamp bei jedem Click zusätzlich zur Overview csv
+# Jedes toggle mit Timestamp (/)
+# Textinput -> Timestamp für JEDEN Buchstaben, allgemein: Timestamp für JEDEN "Click" (/)
+# -> Eine große csv-Datei mit Timestamp bei jedem Click zusätzlich zur Overview csv (/)
 # (Screen- & Audiorecording mit OBS) -> Datenbereinigung
 #
 # Ethikantrag (LMU Ethik-Kommission -> Fast Track)

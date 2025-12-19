@@ -499,7 +499,6 @@ class BuilderMainWindow(QMainWindow):
         self.refresh()
         self.statusBar().showMessage("Loaded", 1500)
 
-
 # ------------------ main ------------------
 
 if __name__ == "__main__":

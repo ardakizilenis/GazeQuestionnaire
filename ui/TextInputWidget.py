@@ -43,6 +43,7 @@ class TextInputWidget(GazeWidget):
     """
 
     submitted = Signal(object)   # str: inputed text
+    clicked = Signal(int, str)
 
     def __init__(
         self,
@@ -60,6 +61,7 @@ class TextInputWidget(GazeWidget):
         self.blink_threshold_ms = blink_threshold_ms
 
         self.current_text: str = ""
+        self.click_index: int = 0
 
         self.mode: str = "groups"
         self.current_group_index: int | None = None
@@ -103,6 +105,10 @@ class TextInputWidget(GazeWidget):
             f"blink_ms={self.blink_threshold_ms}"
         )
 
+    def _emit_click(self, label: str):
+        self.click_index += 1
+        self.clicked.emit(self.click_index, label)
+
     # gets x and y coords and maps the gaze point to the UI
     @Slot(float, float)
     def set_gaze(self, x: float, y: float):
@@ -127,7 +133,6 @@ class TextInputWidget(GazeWidget):
 
         elif blinking and self.is_blinking:
             duration = self.blink_timer.elapsed()
-            print(duration)
             if duration >= self.blink_threshold_ms and not self.blink_fired:
                 self.handle_activation_by_point()
                 self.blink_fired = True
@@ -186,26 +191,32 @@ class TextInputWidget(GazeWidget):
     # -> The grid redesigns with the letters inside the group
     def handle_groups_activation(self, area: str):
         if area == "N":
+            self._emit_click("group:0(A-G)")
             self.current_group_index = 0
             self.mode = "letters"
             QApplication.beep()
         elif area == "W":
+            self._emit_click("group:1(H-N)")
             self.current_group_index = 1
             self.mode = "letters"
             QApplication.beep()
         elif area == "E":
+            self._emit_click("group:2(O-U)")
             self.current_group_index = 2
             self.mode = "letters"
             QApplication.beep()
         elif area == "S":
+            self._emit_click("group:3(V-Z_)")
             self.current_group_index = 3
             self.mode = "letters"
             QApplication.beep()
 
         # Backspace / Submit only in "group-mode"
         elif area == "SW":
+            self._emit_click("backspace")
             self.backspace()
         elif area == "SE":
+            self._emit_click("submit")
             self.submit()
 
         self.update()
@@ -221,6 +232,7 @@ class TextInputWidget(GazeWidget):
 
         # the "NORTH" area is reserved to go back to the letter-groups
         if area == "N":
+            self._emit_click("back")
             self.mode = "groups"
             self.current_group_index = None
             QApplication.beep()
@@ -233,10 +245,9 @@ class TextInputWidget(GazeWidget):
             idx = slots.index(area)
             if idx < len(letters):
                 ch = letters[idx]
-                if ch == " ":
-                    char_to_add = " "
-                else:
-                    char_to_add = ch
+                char_to_add = " " if ch == " " else ch
+
+                self._emit_click("char:SPACE" if char_to_add == " " else f"char:{char_to_add}")
                 self.append_char(char_to_add)
 
         # Return to the groups-mode after choosing a letter (Maybe faster and more comfortable with no return?)

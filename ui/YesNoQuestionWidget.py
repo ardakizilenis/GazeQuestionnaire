@@ -1,6 +1,4 @@
 # ui/YesNoQuestionWidget.py
-from bdb import effective
-
 from PySide6.QtCore import QElapsedTimer, QRect, Slot, Qt, Signal
 from PySide6.QtGui import QPainter, QBrush, QFont
 from PySide6.QtWidgets import QApplication
@@ -25,6 +23,7 @@ class YesNoQuestionWidget(GazeWidget):
     """
 
     submitted = Signal(object) # sends a string signal "yes" or "no"
+    clicked = Signal(int, str)
 
     def __init__(
         self,
@@ -41,6 +40,7 @@ class YesNoQuestionWidget(GazeWidget):
         self.dwell_threshold_ms = dwell_threshold_ms
         self.blink_threshold_ms = blink_threshold_ms
         self.selection: str | None = None
+        self.click_index: int = 0
 
         # Blink-Recognition
         self.is_blinking = False
@@ -139,6 +139,12 @@ class YesNoQuestionWidget(GazeWidget):
 
     # activates the right function for the area
     def handle_activation_for_area(self, area: str | None):
+        if area not in ("yes", "no", "submit"):
+            return
+
+        self.click_index += 1
+        self.clicked.emit(self.click_index, area)
+
         if area == "yes":
             self.set_selection("yes")
         elif area == "no":

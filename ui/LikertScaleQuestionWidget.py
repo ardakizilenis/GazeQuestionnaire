@@ -31,6 +31,7 @@ class LikertScaleQuestionWidget(GazeWidget):
     """
 
     submitted = Signal(object)  # returns the submitted label as Signal
+    clicked = Signal(int, str)
 
     def __init__(
         self,
@@ -67,6 +68,7 @@ class LikertScaleQuestionWidget(GazeWidget):
 
         # currently chosen Index (0..4) or None
         self.selected_index: int | None = None
+        self.click_index: int = 0
 
         # Blink-Detection
         self.is_blinking = False
@@ -117,7 +119,6 @@ class LikertScaleQuestionWidget(GazeWidget):
 
         elif blinking and self.is_blinking:
             duration = self.blink_timer.elapsed()
-            print(duration)
             if duration >= self.blink_threshold_ms and not self.blink_fired:
                 self.handle_activation_by_point()
                 self.blink_fired = True
@@ -172,8 +173,16 @@ class LikertScaleQuestionWidget(GazeWidget):
                 idx = int(area[3:])
             except ValueError:
                 return
+            if not (0 <= idx < len(self.labels)):
+                return
+
+            self.click_index += 1
+            self.clicked.emit(self.click_index, str(self.labels[idx]))
+
             self.set_selection(idx)
         elif area == "submit":
+            self.click_index += 1
+            self.clicked.emit(self.click_index, "submit")
             self.activate_submit()
 
     # handles the activation where the gaze point is

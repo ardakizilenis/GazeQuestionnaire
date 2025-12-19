@@ -1,3 +1,0 @@
-question_index,question_type,activation_mode,question_text,result,rt_sec,n_toggles,n_resets,n_backspaces,extra_metrics
-1,yesno,dwell,"Are you wearing Glasses right now? 
-(yes/no)",'no',5.369442333001643,1,0,0,yesno;mode=dwell;dwell_ms=1200;blink_ms=150

@@ -32,6 +32,7 @@ class MultipleChoiceQuestionWidget(GazeWidget):
     """
 
     submitted = Signal(object)  # Submits a signal with chosen labels
+    clicked = Signal(int, str)
 
     def __init__(
         self,
@@ -59,6 +60,7 @@ class MultipleChoiceQuestionWidget(GazeWidget):
 
         # Selection Set (Set of Indices 0..3)
         self.selected = set()
+        self.click_index: int = 0
 
         # Blink-Recognition
         self.is_blinking = False
@@ -109,7 +111,6 @@ class MultipleChoiceQuestionWidget(GazeWidget):
 
         elif blinking and self.is_blinking:
             duration = self.blink_timer.elapsed()
-            print(duration)
             if duration >= self.blink_threshold_ms and not self.blink_fired:
                 self.handle_activation_by_point()
                 self.blink_fired = True
@@ -175,12 +176,22 @@ class MultipleChoiceQuestionWidget(GazeWidget):
                 idx = int(area[3:])
             except ValueError:
                 return
+
+            if not (0 <= idx < len(self.labels)):
+                return
+
+            self.click_index += 1
+            self.clicked.emit(self.click_index, str(self.labels[idx]))
             self.toggle_option(idx)
 
         elif area == "reset":
+            self.click_index += 1
+            self.clicked.emit(self.click_index, "reset")
             self.reset_selection()
 
         elif area == "submit":
+            self.click_index += 1
+            self.clicked.emit(self.click_index, "submit")
             self.activate_submit()
 
     # Handles activation of where the gaze-point is
