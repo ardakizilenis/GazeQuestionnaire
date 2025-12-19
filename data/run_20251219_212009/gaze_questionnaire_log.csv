@@ -1,0 +1,18 @@
+question_index,question_type,activation_mode,question_text,result,rt_sec,n_toggles,n_resets,n_backspaces,extra_metrics
+1,yesno,dwell,"Are you wearing Glasses right now? 
+(yes/no)",'no',7.387,2,0,0,yesno;mode=dwell;dwell_ms=1200;blink_ms=150
+2,likert,dwell,"How comfortable do you feel with Eye-Tracking? 
+(Likert-Scale)",'comfortable',4.804,1,0,0,"likert;mode=dwell;dwell_ms=1200;blink_ms=150;labels=['not at all comfortable', 'rather not comfortable', 'neutral', 'comfortable', 'very comfortable']"
+3,mcq,dwell,"Which of the following drinks do you like the most? 
+(Multiple Choice)","['Coffee', 'Tea', 'Water']",15.059,6,1,0,mcq;mode=dwell;dwell_ms=1200;blink_ms=150
+4,textgrid,dwell,"Describe your current mood in one word 
+(Text Entry)",'AWESOME',38.016,7,0,0,textgrid;mode=dwell;dwell_ms=1200;blink_ms=150
+5,yesno,blink,"Do you have motor impairments? 
+(yes/no)",'no',4.4,1,0,0,yesno;mode=blink;dwell_ms=1200;blink_ms=150
+6,likert,blink,"How experienced are you with computers?
+(Likert-Scale)",'very experienced',8.5,1,0,0,"likert;mode=blink;dwell_ms=1200;blink_ms=150;labels=['not at all experienced', 'rather not experienced', 'neutral', 'experienced', 'very experienced']"
+7,mcq,blink,"Complete the sentence in the right order:
+""He, She, It: ...""
+(Multiple-Choice)","['muss', 'Das', ""'s'"", 'mit']",5.53,4,0,0,mcq;mode=blink;dwell_ms=1200;blink_ms=150
+8,textgrid,blink,"Describe your experience with Gaze Questionnaire with one Word.
+(Text Entry)",'FUN',25.343,4,0,1,textgrid;mode=blink;dwell_ms=1200;blink_ms=150

@@ -57,18 +57,15 @@ class MainWindow(QMainWindow):
         self.current_qmeta: Optional[Dict[str, Any]] = None
 
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.log_dir = os.path.join(base_dir, "data")
-        os.makedirs(self.log_dir, exist_ok=True)
+        data_root = os.path.join(base_dir, "data")
+        os.makedirs(data_root, exist_ok=True)
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.log_filename = os.path.join(
-            self.log_dir,
-            f"gaze_questionnaire_log_{timestamp}.csv",
-        )
-        self.click_filename = os.path.join(
-            self.log_dir,
-            f"gaze_questionnaire_log_clicks_{timestamp}.csv",
-        )
+        self.run_dir = os.path.join(data_root, f"run_{timestamp}")
+        os.makedirs(self.run_dir, exist_ok=True)
+
+        self.log_filename = os.path.join(self.run_dir, "gaze_questionnaire_log.csv")
+        self.click_filename = os.path.join(self.run_dir, "gaze_questionnaire_clicks.csv")
 
     # APIs for Questionnaire Definition
 
