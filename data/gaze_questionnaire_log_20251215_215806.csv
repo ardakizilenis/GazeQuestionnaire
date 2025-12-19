@@ -1,0 +1,19 @@
+question_index,question_type,activation_mode,question_text,result,rt_sec,n_toggles,n_resets,n_backspaces,extra_metrics
+1,yesno,dwell,"Are you wearing Glasses right now? 
+(yes/no)",'no',5.650391584000317,1,0,0,yesno;mode=dwell;dwell_ms=1200;blink_ms=150
+2,likert,dwell,"How comfortable do you feel with Eye-Tracking? 
+(Likert-Scale)",'neutral',11.112036458995135,1,0,0,"likert;mode=dwell;dwell_ms=1200;blink_ms=150;labels=['not at all comfortable', 'rather not comfortable', 'neutral', 'comfortable', 'very comfortable']"
+3,mcq,dwell,"Which of the following drinks do you like the most? 
+(Multiple Choice)","['Coffee', 'Tea', 'Water', 'Juice/Energy Drink']",19.713817582996853,4,0,0,mcq;mode=dwell;dwell_ms=1200;blink_ms=150
+4,textgrid,dwell,"Describe your current mood in one word 
+(Text Entry)",'GOOD',79.0447012500008,5,0,1,textgrid;mode=dwell;dwell_ms=1200;blink_ms=150
+5,yesno,blink,"Do you have motor impairments? 
+(yes/no)",'no',14.160906500001147,1,0,0,yesno;mode=blink;dwell_ms=1200;blink_ms=150
+6,likert,blink,"How experienced are you with computers?
+(Likert-Scale)",'very experienced',9.118065082999237,1,0,0,"likert;mode=blink;dwell_ms=1200;blink_ms=150;labels=['not at all experienced', 'rather not experienced', 'neutral', 'experienced', 'very experienced']"
+7,mcq,blink,"Complete the sentence in the right order:
+""He, She, It: ...""
+(Multiple-Choice)","['muss', 'Das', ""'s'"", 'mit']",18.57009599999583,4,0,0,mcq;mode=blink;dwell_ms=1200;blink_ms=150
+8,textgrid,blink,"Describe your experience with Gaze Questionnaire with one Word.
+(Text Entry)",'AWESOME',46.31694129200332,7,0,0,textgrid;mode=blink;dwell_ms=1200;blink_ms=150
+9,sp_yesno,smooth_pursuit,Is 1+1=2 correct? (yes/no),'yes',5.338117874998716,1,0,0,smooth_pursuit_yesno;window_ms=1500;eval_interval_ms=100;min_window_ms=900;min_stable_evals=3;max_mean_dist_px=120.0;min_dist_margin_px=35.0;angular_speed=1.5707963267948966
