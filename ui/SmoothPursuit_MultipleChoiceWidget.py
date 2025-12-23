@@ -248,7 +248,7 @@ class SmoothPursuitMultipleChoiceWidget(GazeWidget):
         w = max(1, self.width())
         h = max(1, self.height())
 
-        # Smaller center question box (per request)
+        # Smaller center question box
         q_w = int(w * 0.52)
         q_h = int(h * 0.22)
         qx = (w - q_w) // 2
@@ -595,7 +595,7 @@ class SmoothPursuitMultipleChoiceWidget(GazeWidget):
             if self._last_scores.get(best, 0.0) >= self.corr_threshold:
                 highlight_opt = best
 
-        # draw ONLY moving texts (no circles)
+        # draw ONLY moving texts
         for lab in self.labels:
             x, y = opt_pos[lab]
             selected = (lab in self.selected)
@@ -637,7 +637,6 @@ class SmoothPursuitMultipleChoiceWidget(GazeWidget):
 
         sel_txt = ",".join(sorted(self.selected)) if self.selected else "-"
 
-        # Optional: wenn empty submit nicht erlaubt & nichts gewählt => etwas “dezent”
         if (not self.allow_empty_submit) and (not self.selected):
             painter.setPen(QPen(Qt.gray, 3))
         else:

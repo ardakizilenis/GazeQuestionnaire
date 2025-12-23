@@ -1,7 +1,5 @@
 # ui/SmoothPursuit_YesNoWidget.py
-# Drop-in Yes/No widget rewritten to match SmoothPursuitMultipleChoiceWidget style/logic.
 #
-# Matches MCQ-style:
 # - Rolling window buffers (window_ms)
 # - Proximity-boost + rolling correlation (XY for options, X-only for SUBMIT)
 # - Stable decisions are SAMPLE-count based (toggle_stable_samples / submit_stable_samples)

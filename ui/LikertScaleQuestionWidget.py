@@ -39,7 +39,7 @@ class LikertScaleQuestionWidget(GazeWidget):
         parent=None,
         activation_mode: str = "blink",
         dwell_threshold_ms: int = 1200,
-        blink_threshold_ms: int = 150,
+        blink_threshold_ms: int = 250,
         labels=None
     ):
         super().__init__(parent)

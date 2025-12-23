@@ -1,24 +1,19 @@
 # ui/SmoothPursuit_LikertWidget.py
-# Smooth Pursuit Likert (5 options) rewritten in the SAME style/logic as SmoothPursuitMultipleChoiceWidget.
+# Smooth Pursuit Likert (5 options)
 #
-# Layout / Motion (as requested):
+# Layout / Motion:
 # - Label 1: circle CCW, left-middle
 # - Label 2: square CW, left-top
 # - Label 3: triangle CW, top-middle
 # - Label 4: circle CCW, top-right
 # - Label 5: square CW, mid-right
-# - Center: question box like MCQ / YesNo
-# - Bottom: SUBMIT button moving horizontally, same scoring logic as MCQ (X-only corr + proximity)
+# - Center: question box
+# - Bottom: SUBMIT button moving horizontally
 #
-# Decision (MCQ-like):
-# - Rolling time window buffers (window_ms)
+# Decision:
 # - Lag-compensated Pearson correlation (+ optional proximity bias)
 # - Stable detection uses SAMPLE COUNTS (toggle_stable_samples / submit_stable_samples)
-# - Cooldowns prevent rapid re-triggers
-#
-# Signals:
-#   submitted(object): emits ONLY the selected label string (e.g. "3" or "neutral")
-#   clicked(int, str): emits "select:<label>" and "submit"
+# - Cooldowns to prevent rapid re-triggers
 
 
 from __future__ import annotations
@@ -92,14 +87,6 @@ def gaussian_proximity(dist: np.ndarray, sigma: float) -> np.ndarray:
 
 
 class SmoothPursuitLikertScaleWidget(GazeWidget):
-    """
-    Smooth Pursuit Likert (5 options, single-select) with SUBMIT.
-
-    IMPORTANT:
-    - labels MUST be passed from JSON (items[i]["labels"]) as a list of 5 strings.
-      This widget will use them directly.
-    - submitted(object): emits ONLY the selected label string (e.g. "Neutral")
-    """
 
     submitted = Signal(object)
     clicked = Signal(int, str)
@@ -110,7 +97,7 @@ class SmoothPursuitLikertScaleWidget(GazeWidget):
         labels: Optional[List[str]] = None,
         parent=None,
 
-        # Pursuit params (match MCQ naming)
+        # Pursuit params
         window_ms: int = 1250,
         corr_threshold: float = 0.73,
         toggle_stable_samples: int = 18,
@@ -143,14 +130,9 @@ class SmoothPursuitLikertScaleWidget(GazeWidget):
 
         self.question = question
 
-        # ---- FIX #2: Actually use provided JSON labels ----
-        # Accept list/tuple of 5, or a dict-like containing "labels".
         if labels is None:
-            # Some codebases accidentally pass the whole item dict as "labels".
-            # We'll *try* to recover if labels is embedded somewhere else later, but default stays numeric.
             self.labels = ["1", "2", "3", "4", "5"]
         else:
-            # If someone passed the whole JSON item here by mistake, recover:
             if isinstance(labels, dict) and "labels" in labels:
                 labels = labels["labels"]  # type: ignore[assignment]
 
@@ -179,7 +161,6 @@ class SmoothPursuitLikertScaleWidget(GazeWidget):
         self.submit_cooldown_ms = int(submit_cooldown_ms)
         self.allow_empty_submit = bool(allow_empty_submit)
 
-        # ---- FIX #1: shift all non-submit content downward ----
         self.layout_shift_down_px = max(int(layout_shift_down_px), int(self.height() * 0.06) if self.height() else layout_shift_down_px)
 
         # Time reference
@@ -206,7 +187,7 @@ class SmoothPursuitLikertScaleWidget(GazeWidget):
         self._toggle_block_until = 0.0
         self._submit_block_until = 0.0
 
-        # For UI highlight
+        # UI highlight
         self._last_scores: Dict[str, float] = {lab: 0.0 for lab in self.labels}
         self._last_submit_score: float = 0.0
 
@@ -294,8 +275,6 @@ class SmoothPursuitLikertScaleWidget(GazeWidget):
         h = max(1, self.height())
 
         # ---------------- shift (robust) ----------------
-        # Use a relative shift so it works across resolutions and fullscreen.
-        # Clamp to avoid extreme shifts on very small/large screens.
         shift = float(max(self.layout_shift_down_px, int(h * 0.08)))
         shift = float(min(shift, int(h * 0.18)))
 
@@ -339,7 +318,7 @@ class SmoothPursuitLikertScaleWidget(GazeWidget):
         right_x = float(min(float(w - 60), max(float(w - margin), w * 0.70)))
         mid_x = float(w * 0.50)
 
-        # ---------------- vertical placement (clamped) ----------------
+        # ---------------- vertical placement ----------------
         # TOP row must stay on-screen AND above question box.
         top_y_min = top_clear + 20.0
         top_y_max = max(top_y_min, float(question_rect.top()) - top_clear - 18.0)
@@ -358,7 +337,7 @@ class SmoothPursuitLikertScaleWidget(GazeWidget):
         mid_y = float(h * 0.62) + shift
         mid_y = float(max(mid_y_min, min(mid_y, mid_y_max)))
 
-        # ---------------- centers & orbit params (per requested mapping) ----------------
+        # ---------------- centers & orbit params ----------------
         centers = {
             self.labels[0]: (left_x, mid_y),  # Label 1: left-middle
             self.labels[1]: (left_x, top_y),  # Label 2: left-top

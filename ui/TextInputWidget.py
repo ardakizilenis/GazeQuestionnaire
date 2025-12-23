@@ -51,7 +51,7 @@ class TextInputWidget(GazeWidget):
         parent=None,
         activation_mode: str = "dwell",
         dwell_threshold_ms: int = 1200,
-        blink_threshold_ms: int = 150
+        blink_threshold_ms: int = 250
     ):
         super().__init__(parent)
 

@@ -5,59 +5,203 @@
   },
   "items": [
     {
-      "activation": "smooth_pursuit",
+      "duration": 5,
+      "text": "--------------------\n\nWelcome to Gaze Questionnaire!\n\n--------------------",
+      "type": "info"
+    },
+    {
+      "duration": 8,
+      "text": "--------------------\n\nAnswer multiple Question-Types with Blink, Dwell or Smooth Pursuit.\nThis is a Demo Questionnaire. Enjoy! 🙂\n\n--------------------",
+      "type": "info"
+    },
+    {
+      "duration": 5,
+      "text": "--------------------\n\nBLOCK I:\nDwell Time Selection\n\n--------------------",
+      "type": "info"
+    },
+    {
+      "duration": 5,
+      "text": "--------------------\n\nDwell 1-2 Seconds on a target to select\n\n--------------------",
+      "type": "info"
+    },
+    {
+      "duration": 7,
+      "text": "QUESTION 1:\nAre you wearing Glasses right now? \n(yes/no)",
+      "type": "info"
+    },
+    {
+      "activation": "dwell",
+      "text": "Are you wearing Glasses right now? \n(yes/no)",
+      "type": "yesno"
+    },
+    {
+      "duration": 7,
+      "text": "QUESTION 2: \nHow comfortable do you feel with Eye-Tracking? \n(Likert-Scale)",
+      "type": "info"
+    },
+    {
+      "activation": "dwell",
       "labels": [
-        "1",
-        "2",
-        "-2",
-        "-1"
+        "not at all comfortable",
+        "rather not comfortable",
+        "neutral",
+        "comfortable",
+        "very comfortable"
       ],
-      "text": "Was ist Wurzel aus 4?",
-      "type": "sp_mcq"
+      "text": "How comfortable do you feel with Eye-Tracking? \n(Likert-Scale)",
+      "type": "likert"
+    },
+    {
+      "duration": 7,
+      "text": "QUESTION 3: \nWhich of the following drinks do you like the most? \n(Multiple Choice)",
+      "type": "info"
+    },
+    {
+      "activation": "dwell",
+      "labels": [
+        "Coffee",
+        "Tea",
+        "Water",
+        "Juice/Energy Drink"
+      ],
+      "text": "Which of the following drinks do you like the most? \n(Multiple Choice)",
+      "type": "mcq"
+    },
+    {
+      "duration": 7,
+      "text": "QUESTION 4: \nDescribe your current mood in one word \n(Text Entry)",
+      "type": "info"
+    },
+    {
+      "activation": "dwell",
+      "text": "Describe your current mood in one word \n(Text Entry)",
+      "type": "textgrid"
+    },
+    {
+      "duration": 5,
+      "text": "--------------------\n\nBLOCK II:\nBlink Gesture Selection\n\n--------------------",
+      "type": "info"
+    },
+    {
+      "duration": 5,
+      "text": "--------------------\n\nBlink 0.2 - 0.3 Seconds to select a target\n\n--------------------",
+      "type": "info"
+    },
+    {
+      "duration": 7,
+      "text": "QUESTION 5: \nDo you have motor impairments? \n(yes/no)",
+      "type": "info"
+    },
+    {
+      "activation": "blink",
+      "text": "Do you have motor impairments? \n(yes/no)",
+      "type": "yesno"
+    },
+    {
+      "duration": 7,
+      "text": "QUESTION 6:\nHow experienced are you with computers?\n(Likert-Scale)",
+      "type": "info"
+    },
+    {
+      "duration": 5,
+      "text": "--------------------\n\nDwell for 1-2 Seconds on a target to select it.\n\n--------------------",
+      "type": "info"
+    },
+    {
+      "activation": "blink",
+      "labels": [
+        "not at all experienced",
+        "rather not experienced",
+        "neutral",
+        "experienced",
+        "very experienced"
+      ],
+      "text": "How experienced are you with computers?\n(Likert-Scale)",
+      "type": "likert"
+    },
+    {
+      "duration": 7,
+      "text": "QUESTION 7:\nComplete the sentence in the right order:\n\"He, She, It: ...\"\n(Multiple-Choice)",
+      "type": "info"
+    },
+    {
+      "activation": "blink",
+      "labels": [
+        "muss",
+        "Das",
+        "'s'",
+        "mit"
+      ],
+      "text": "Complete the sentence in the right order:\n\"He, She, It: ...\"\n(Multiple-Choice)",
+      "type": "mcq"
+    },
+    {
+      "duration": 7,
+      "text": "QUESTION 8:\nDescribe your experience with Gaze Questionnaire with one Word.\n(Text Entry)",
+      "type": "info"
+    },
+    {
+      "activation": "blink",
+      "text": "Describe your experience with Gaze Questionnaire with one Word.\n(Text Entry)",
+      "type": "textgrid"
+    },
+    {
+      "duration": 5,
+      "text": "--------------------\n\nBLOCK III:\nSmooth Pursuit Selection\n\n--------------------",
+      "type": "info"
+    },
+    {
+      "duration": 5,
+      "text": "--------------------\n\nFollow a target with your gaze for a while to select it\n\n--------------------",
+      "type": "info"
+    },
+    {
+      "duration": 5,
+      "text": "QUESTION 9: \nIs a tree green?\n(yes/no)",
+      "type": "info"
+    },
+    {
+      "activation": "smooth_pursuit",
+      "text": "Is a tree green? \n(yes/no)",
+      "type": "sp_yesno"
+    },
+    {
+      "duration": 5,
+      "text": "QUESTION 10: \nHow often do you listen to classical music?\n(likert)",
+      "type": "info"
     },
     {
       "activation": "smooth_pursuit",
       "labels": [
-        "Sehr Erfahren",
-        "Erfahren",
-        "Neutral",
-        "Eher Nicht Erfahren",
-        "Gar Nicht Erfahren"
+        "Not at all",
+        "Barely",
+        "Sometimes",
+        "Often",
+        "Very Often"
       ],
-      "text": "Wie Erfahren bist du mit Computern?",
+      "text": "How often do you listen to classical music?\n(likert)",
       "type": "sp_likert"
     },
     {
-      "activation": "smooth_pursuit",
-      "labels": [
-        "Kaffee",
-        "Tee",
-        "Cola",
-        "Wasser"
-      ],
-      "text": "Welche Getränke magst du?",
-      "type": "sp_mcq"
-    },
-    {
-      "activation": "smooth_pursuit",
-      "text": "Hast du eine Brille an?",
-      "type": "sp_yesno"
-    },
-    {
-      "activation": "smooth_pursuit",
-      "text": "Ja oder Nein?",
-      "type": "sp_yesno"
+      "duration": 5,
+      "text": "QUESTION 11:\nComplete the name of a famous pirate\n(Multiple Choice)",
+      "type": "info"
     },
     {
       "activation": "smooth_pursuit",
       "labels": [
-        "Das",
-        "muss",
-        "mit",
-        "'s'"
+        "Jack",
+        "Captain",
+        "Sparrow",
+        "Beethoven"
       ],
-      "text": "He She It",
+      "text": "Complete the name of a famous pirate\n(Multiple Choice)",
       "type": "sp_mcq"
+    },
+    {
+      "duration": 5,
+      "text": "--------------------\n\nYour Log has been saved in the data/-Folder.\nThank you for participating! \n\n--------------------",
+      "type": "info"
     }
   ]
 }
