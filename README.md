@@ -62,12 +62,15 @@ python tools/questionnaire_builder.py
 5) When you are finished, simply save the questionnaire (Third Menu Option) in `questionnaires/questionnaire.json`.
 
 6) Run the questionnaire
-`python main.py`
 
-3) Execution flow:
+`
+python main.py
+`
+
+Execution flow:
 - 9-point gaze calibration
-- Optional Kalman filter tuning
-- Fullscreen questionnaire execution
+- Kalman-Filter Tuning
+- Fullscreen questionnaire with Questions from the JSON
 
 ---
 
@@ -75,11 +78,9 @@ python tools/questionnaire_builder.py
 
 Each run creates a new directory:
 
-data/run_YYYYMMDD_HHMMSS/
-
--> gaze_questionnaire_log.csv
-
--> gaze_questionnaire_clicks.csv
+>`data/run_YYYYMMDD_HHMMSS/`
+>- `gaze_questionnaire_log.csv`
+>- `gaze_questionnaire_clicks.csv`
 
 **gaze_questionnaire_log.csv**
 
@@ -89,8 +90,7 @@ One row per question, including:
 - Question text
 - Result (stored via repr)
 - Reaction time (seconds)
-  
-Interaction metrics (toggles, resets, backspaces)
+- Interaction metrics (toggles, resets, backspaces)
 
 **gaze_questionnaire_clicks.csv**
 - Low-level interaction events with timestamps:
