@@ -126,6 +126,15 @@ Interaction metrics (toggles, resets, backspaces)
 
 ---
 
+## Used Repositories and Frameworks
+
+- For Eyetracking: `eyetrax`:
+  - Author: Zhang, C. (2025). EyeTrax (0.2.2) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.17188537
+  - Repo: https://github.com/ck-zhang/EyeTrax
+- For GUI: `pyside6` Framework
+
+---
+
 ## License
 
 Intended for academic and research use.
