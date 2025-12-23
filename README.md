@@ -1,4 +1,4 @@
-# Gaze Questionnaire Framework
+# Gaze Questionnaire
 
 A research-oriented framework for **gaze-based questionnaires** using **eye tracking**, **blink/dwell activation**, and **smooth pursuit interaction**.  
 The system enables hands-free answering of questionnaires and logs fine-grained interaction data for later analysis.
