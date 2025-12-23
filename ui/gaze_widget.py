@@ -1,4 +1,5 @@
 # ui/gaze_widget.py
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import Slot
 
@@ -8,8 +9,11 @@ class GazeWidget(QWidget):
         super().__init__(parent)
         self.gaze_x = None
         self.gaze_y = None
-        self.screen_width = 1700
-        self.screen_height = 1000
+
+        screen = QGuiApplication.primaryScreen()
+        geom = screen.geometry()
+        self.screen_width = geom.width()
+        self.screen_height = geom.height()
         self.point_radius = 10
 
     # setter for gaze

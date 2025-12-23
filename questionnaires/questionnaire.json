@@ -103,11 +103,6 @@
       "type": "info"
     },
     {
-      "duration": 5,
-      "text": "--------------------\n\nDwell for 1-2 Seconds on a target to select it.\n\n--------------------",
-      "type": "info"
-    },
-    {
       "activation": "blink",
       "labels": [
         "not at all experienced",
