@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QLabel, QToolBar, QStyle
 )
 
-QUESTION_TYPES = ["info", "yesno", "mcq", "likert", "textgrid", "sp_yesno"]
+QUESTION_TYPES = ["info", "yesno", "mcq", "likert", "textgrid", "sp_yesno", "sp_mcq", "sp_likert"]
 ACTIVATIONS = ["dwell", "blink"]
 
 
@@ -218,8 +218,8 @@ class ItemEditorDialog(QDialog):
 
     def _update_visibility(self, qtype: str):
         self.duration_spin.setEnabled(qtype == "info")
-        self.activation_row.setVisible(qtype not in ("info", "sp_yesno"))
-        self.labels_edit.setEnabled(qtype in ("mcq", "likert"))
+        self.activation_row.setVisible(qtype not in ("info", "sp_yesno", "sp_mcq", "sp_likert"))
+        self.labels_edit.setEnabled(qtype in ("mcq", "likert", "sp_mcq", "sp_likert"))
 
     def _load(self, it: dict):
         self.type_box.setCurrentText(it.get("type", "info"))
@@ -243,6 +243,11 @@ class ItemEditorDialog(QDialog):
             it["activation"] = "smooth_pursuit"
             return it
 
+        if qtype in ("sp_mcq", "sp_likert"):
+            it["activation"] = "smooth_pursuit"
+            it["labels"] = [l.strip() for l in self.labels_edit.toPlainText().splitlines() if l.strip()]
+            return it
+
         it["activation"] = self.activation_box.currentText()
 
         if qtype in ("mcq", "likert"):
@@ -257,11 +262,11 @@ class ItemEditorDialog(QDialog):
             QMessageBox.warning(self, "Invalid", "Text must not be empty.")
             return
 
-        if it["type"] == "mcq" and len(it.get("labels", [])) != 4:
+        if it["type"] in ("mcq", "sp_mcq") and len(it.get("labels", [])) != 4:
             QMessageBox.warning(self, "Invalid", "MCQ requires exactly 4 labels.")
             return
 
-        if it["type"] == "likert" and len(it.get("labels", [])) != 5:
+        if it["type"] in ("likert", "sp_likert") and len(it.get("labels", [])) != 5:
             QMessageBox.warning(self, "Invalid", "Likert requires exactly 5 labels.")
             return
 
@@ -388,6 +393,10 @@ class BuilderMainWindow(QMainWindow):
             return f"{idx:02d}. [info {it.get('duration', 5)}s] {txt}"
         if qtype == "sp_yesno":
             return f"{idx:02d}. [sp_yesno] {txt}"
+        if qtype == "sp_mcq":
+            return f"{idx:02d}. [sp_mcq] {txt}"
+        if qtype == "sp_likert":
+            return f"{idx:02d}. [sp_likert] {txt}"
         act = it.get("activation", "")
         return f"{idx:02d}. [{qtype} | {act}] {txt}"
 

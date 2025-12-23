@@ -6,11 +6,13 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 from PySide6.QtWidgets import QMainWindow, QApplication
 from gaze.eyetracker_worker import EyeTrackerWorker
+from ui.SmoothPursuit_MultipleChoiceWidget import SmoothPursuitMultipleChoiceWidget
 from ui.YesNoQuestionWidget import YesNoQuestionWidget
 from ui.MultipleChoiceQuestionWidget import MultipleChoiceQuestionWidget
 from ui.LikertScaleQuestionWidget import LikertScaleQuestionWidget
 from ui.InfoWidget import InfoWidget
 from ui.SmoothPursuit_YesNoWidget import SmoothPursuitYesNoWidget
+from ui.SmoothPursuit_LikertScaleWidget import SmoothPursuitLikertScaleWidget
 
 from ui.TextInputWidget import TextInputWidget
 
@@ -36,7 +38,7 @@ class MainWindow(QMainWindow):
 
         # Question Queue
         # ... is a List of dicts like:
-        #   type: "info" | "yesno" | "mcq" | "likert" | "textgrid" | "sp_yesno"
+        #   type: "info" | "yesno" | "mcq" | "likert" | "textgrid" | "sp_yesno" | "sp_mcq" | "sp_likert"
         #   text: Question / Info-Text
         #   activation: "blink" | "dwell"
         #   duration: int (seconds, only for info-widget)
@@ -131,6 +133,26 @@ class MainWindow(QMainWindow):
             }
         )
 
+    def enqueue_smoothpursuit_mcq(self, question: str, labels=None) -> None:
+        self.question_queue.append(
+            {
+                "type": "sp_mcq",
+                "text": question,
+                "activation": "smooth_pursuit",
+                "labels": labels
+            }
+        )
+
+    def enqueue_smoothpursuit_likert(self, question: str, labels=None) -> None:
+        self.question_queue.append(
+            {
+                "type": "sp_likert",
+                "text": question,
+                "activation": "smooth_pursuit",
+                "labels": labels
+            }
+        )
+
     # Questionnaire starts (after enqueuing
     def start_questionnaire(self) -> None:
         """Von main.py aufrufen, nachdem alle Fragen hinzugefügt wurden."""
@@ -209,6 +231,17 @@ class MainWindow(QMainWindow):
                 )
             case "sp_yesno":
                 widget = SmoothPursuitYesNoWidget(text)
+            case "sp_mcq":
+                widget = SmoothPursuitMultipleChoiceWidget(
+                    text,
+                    labels=meta.get("labels")
+                )
+            case "sp_likert":
+                widget = SmoothPursuitLikertScaleWidget(
+                    text,
+                    labels=meta.get("labels")
+                )
+
             case _:
                 print("Question Type unknown:", qtype)
                 self.show_next_question()

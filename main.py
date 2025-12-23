@@ -33,6 +33,10 @@ def enqueue_from_json(window, items):
             window.enqueue_textgrid(text, activation or "dwell")
         elif qtype == "sp_yesno":
             window.enqueue_smoothpursuit_yesno(text)
+        elif qtype == "sp_mcq":
+            window.enqueue_smoothpursuit_mcq(text, labels=it.get("labels"))
+        elif qtype == "sp_likert":
+            window.enqueue_smoothpursuit_likert(text, labels=it.get("labels"))
         else:
             print("Unknown question type:", qtype)
 
@@ -56,3 +60,18 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# Jedes toggle mit Timestamp (/)
+# Textinput -> Timestamp für JEDEN Buchstaben, allgemein: Timestamp für JEDEN "Click" (/)
+# -> Eine große csv-Datei mit Timestamp bei jedem Click zusätzlich zur Overview csv (/)
+# (Screen- & Audiorecording mit OBS) -> Datenbereinigung
+#
+# Ethikantrag (LMU Ethik-Kommission -> Fast Track)
+# Einverständniserklärung
+# Papierfragebogen (?)
+# 12-20 Personen (2 Studien, 1 für Researchers JSON-Editor (6 Experts), 1 für Eyetracker)
+# Teilnehmer finden bei Slack, Leute fragen
+#
+# Mehr Fragen nehmen, die objektiver sind
+# Randomisieren von Fragen
+#

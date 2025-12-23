@@ -5,110 +5,59 @@
   },
   "items": [
     {
-      "activation": "dwell",
-      "text": "Are you wearing Glasses right now? \n(yes/no)",
-      "type": "yesno"
-    },
-    {
-      "activation": "dwell",
+      "activation": "smooth_pursuit",
       "labels": [
-        "not at all comfortable",
-        "rather not comfortable",
-        "neutral",
-        "comfortable",
-        "very comfortable"
+        "1",
+        "2",
+        "-2",
+        "-1"
       ],
-      "text": "How comfortable do you feel with Eye-Tracking? \n(Likert-Scale)",
-      "type": "likert"
+      "text": "Was ist Wurzel aus 4?",
+      "type": "sp_mcq"
     },
     {
-      "duration": 7,
-      "text": "QUESTION 3: \nWhich of the following drinks do you like the most? \n(Multiple Choice)",
-      "type": "info"
-    },
-    {
-      "activation": "dwell",
+      "activation": "smooth_pursuit",
       "labels": [
-        "Coffee",
-        "Tea",
-        "Water",
-        "Juice/Energy Drink"
+        "Sehr Erfahren",
+        "Erfahren",
+        "Neutral",
+        "Eher Nicht Erfahren",
+        "Gar Nicht Erfahren"
       ],
-      "text": "Which of the following drinks do you like the most? \n(Multiple Choice)",
-      "type": "mcq"
+      "text": "Wie Erfahren bist du mit Computern?",
+      "type": "sp_likert"
     },
     {
-      "duration": 7,
-      "text": "QUESTION 4: \nDescribe your current mood in one word \n(Text Entry)",
-      "type": "info"
-    },
-    {
-      "activation": "dwell",
-      "text": "Describe your current mood in one word \n(Text Entry)",
-      "type": "textgrid"
-    },
-    {
-      "duration": 5,
-      "text": "--------------------\n\nBLOCK II:\nBlink Gesture Selection\n\n--------------------",
-      "type": "info"
-    },
-    {
-      "duration": 5,
-      "text": "--------------------\n\nBlink 0.2 Seconds on an answer to select\n\n--------------------",
-      "type": "info"
-    },
-    {
-      "duration": 7,
-      "text": "QUESTION 5: \nDo you have motor impairments? \n(yes/no)",
-      "type": "info"
-    },
-    {
-      "activation": "blink",
-      "text": "Do you have motor impairments? \n(yes/no)",
-      "type": "yesno"
-    },
-    {
-      "duration": 7,
-      "text": "QUESTION 6:\nHow experienced are you with computers?\n(Likert-Scale)",
-      "type": "info"
-    },
-    {
-      "activation": "blink",
+      "activation": "smooth_pursuit",
       "labels": [
-        "not at all experienced",
-        "rather not experienced",
-        "neutral",
-        "experienced",
-        "very experienced"
+        "Kaffee",
+        "Tee",
+        "Cola",
+        "Wasser"
       ],
-      "text": "How experienced are you with computers?\n(Likert-Scale)",
-      "type": "likert"
+      "text": "Welche Getränke magst du?",
+      "type": "sp_mcq"
     },
     {
-      "duration": 7,
-      "text": "QUESTION 7:\nComplete the sentence in the right order:\n\"He, She, It: ...\"\n(Multiple-Choice)",
-      "type": "info"
+      "activation": "smooth_pursuit",
+      "text": "Hast du eine Brille an?",
+      "type": "sp_yesno"
     },
     {
-      "activation": "blink",
+      "activation": "smooth_pursuit",
+      "text": "Ja oder Nein?",
+      "type": "sp_yesno"
+    },
+    {
+      "activation": "smooth_pursuit",
       "labels": [
-        "muss",
         "Das",
-        "'s'",
-        "mit"
+        "muss",
+        "mit",
+        "'s'"
       ],
-      "text": "Complete the sentence in the right order:\n\"He, She, It: ...\"\n(Multiple-Choice)",
-      "type": "mcq"
-    },
-    {
-      "duration": 7,
-      "text": "QUESTION 8:\nDescribe your experience with Gaze Questionnaire with one Word.\n(Text Entry)",
-      "type": "info"
-    },
-    {
-      "activation": "blink",
-      "text": "Describe your experience with Gaze Questionnaire with one Word.\n(Text Entry)",
-      "type": "textgrid"
+      "text": "He She It",
+      "type": "sp_mcq"
     }
   ]
 }

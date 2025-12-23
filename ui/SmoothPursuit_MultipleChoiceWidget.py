@@ -1,21 +1,16 @@
-# ui/SmoothPursuit_YesNoWidget.py
-# Drop-in Yes/No widget rewritten to match SmoothPursuitMultipleChoiceWidget style/logic.
+# ui/SmoothPursuit_MultipleChoiceWidget.py
 #
-# Matches MCQ-style:
-# - Rolling window buffers (window_ms)
-# - Proximity-boost + rolling correlation (XY for options, X-only for SUBMIT)
-# - Stable decisions are SAMPLE-count based (toggle_stable_samples / submit_stable_samples)
-# - Cooldowns in ms
-# - No circles/frames around moving texts; only text moves
-# - Question box sized like MCQ (smaller)
-# - submitted(...) emits ONLY the choice string (like normal Yes/No): "yes" or "no"
-# - clicked(...) emits "select:yes"/"select:no"/"submit" for CSV logging
+# 1) submitted(...) emits ONLY the choices list (like normal MCQ): ["A","C"] etc.
+#    -> MainWindow will log repr(result) and stays consistent across widgets.
+# 2) No circles around the moving labels: ONLY the label texts move.
+# 3) Question box is a bit smaller.
+# 4) Still uses proximity-boost + rolling correlation; SUBMIT uses X-only correlation (fix for the 0.5 cap).
 
 from __future__ import annotations
 
 import math
 import time
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Set
 
 import numpy as np
 from PySide6.QtCore import Qt, QRect, QTimer, Slot, Signal, QPoint
@@ -23,6 +18,44 @@ from PySide6.QtGui import QPainter, QPen
 from PySide6.QtWidgets import QApplication
 
 from ui.gaze_widget import GazeWidget
+
+def max_lagged_pearson_corr(a: np.ndarray, b: np.ndarray, max_lag_samples: int) -> float:
+    """
+    Returns the maximum Pearson correlation between a and b over integer sample lags in [-max_lag_samples, +max_lag_samples].
+    Positive lag means: a is shifted forward relative to b (a[k:] vs b[:-k]).
+    """
+    a = np.asarray(a, dtype=float)
+    b = np.asarray(b, dtype=float)
+    if a.size < 3 or b.size < 3:
+        return 0.0
+
+    m = min(a.size, b.size)
+    a = a[-m:]
+    b = b[-m:]
+
+    max_lag_samples = int(max(0, max_lag_samples))
+    if max_lag_samples == 0:
+        return pearson_corr(a, b)
+
+    best = -1.0  # correlation is in [-1,1]
+    for k in range(-max_lag_samples, max_lag_samples + 1):
+        if k == 0:
+            aa, bb = a, b
+        elif k > 0:
+            # a delayed vs b (or equivalently b advanced)
+            aa, bb = a[k:], b[:-k]
+        else:
+            kk = -k
+            aa, bb = a[:-kk], b[kk:]
+
+        if aa.size < 3 or bb.size < 3:
+            continue
+
+        c = pearson_corr(aa, bb)
+        if c > best:
+            best = c
+
+    return float(best if best > -1.0 else 0.0)
 
 
 def pearson_corr(a: np.ndarray, b: np.ndarray) -> float:
@@ -43,61 +76,27 @@ def pearson_corr(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.dot(a, b) / denom)
 
 
-def max_lagged_pearson_corr(a: np.ndarray, b: np.ndarray, max_lag_samples: int) -> float:
-    """
-    Returns the maximum Pearson correlation between a and b over integer sample lags
-    in [-max_lag_samples, +max_lag_samples].
-    Positive lag means: a is shifted forward relative to b (a[k:] vs b[:-k]).
-    """
-    a = np.asarray(a, dtype=float)
-    b = np.asarray(b, dtype=float)
-    if a.size < 3 or b.size < 3:
-        return 0.0
-
-    m = min(a.size, b.size)
-    a = a[-m:]
-    b = b[-m:]
-
-    max_lag_samples = int(max(0, max_lag_samples))
-    if max_lag_samples == 0:
-        return pearson_corr(a, b)
-
-    best = -1.0
-    for k in range(-max_lag_samples, max_lag_samples + 1):
-        if k == 0:
-            aa, bb = a, b
-        elif k > 0:
-            aa, bb = a[k:], b[:-k]
-        else:
-            kk = -k
-            aa, bb = a[:-kk], b[kk:]
-
-        if aa.size < 3 or bb.size < 3:
-            continue
-
-        c = pearson_corr(aa, bb)
-        if c > best:
-            best = c
-
-    return float(best if best > -1.0 else 0.0)
-
-
 def gaussian_proximity(dist: np.ndarray, sigma: float) -> np.ndarray:
     sigma = max(1.0, float(sigma))
     return np.exp(-(dist * dist) / (2.0 * sigma * sigma))
 
 
-class SmoothPursuitYesNoWidget(GazeWidget):
+class SmoothPursuitMultipleChoiceWidget(GazeWidget):
     """
-    Smooth Pursuit Yes/No with separate SUBMIT (MCQ-like UX).
+    Smooth Pursuit Multiple Choice (multi-select):
 
-    - YES and NO are moving TEXT labels.
-    - Following YES/NO stably selects that choice (single-select).
-    - Following SUBMIT stably submits current selection.
+    - 4 moving TEXT labels in the corners:
+        A: top-left circle CW
+        B: top-right circle CCW
+        C: bottom-left square CW
+        D: bottom-right square CCW
+    - Submit button moves horizontally at the bottom.
+    - Following a label stably TOGGLES it (multi-select).
+    - Following SUBMIT stably submits the selection.
 
     Signals:
-      submitted(object): emits ONLY "yes" or "no" (string)
-      clicked(int, str): emits "select:yes", "select:no", "submit"
+      submitted(object): emits ONLY List[str] of selected labels (e.g. ["A","C"])
+      clicked(int, str): emits "toggle:<label>" or "submit" (for your click csv)
     """
 
     submitted = Signal(object)
@@ -106,9 +105,10 @@ class SmoothPursuitYesNoWidget(GazeWidget):
     def __init__(
         self,
         question: str,
+        labels: Optional[List[str]] = None,
         parent=None,
 
-        # Pursuit params (match MCQ naming)
+        # Pursuit params
         window_ms: int = 1250,
         corr_threshold: float = 0.73,
         toggle_stable_samples: int = 18,
@@ -120,7 +120,7 @@ class SmoothPursuitYesNoWidget(GazeWidget):
         option_frequency_hz: float = 0.25,
         submit_frequency_hz: float = 0.28,
 
-        # Visual params / layout
+        # Visual params
         orbit_scale: float = 0.36,
 
         # Proximity mixing
@@ -133,15 +133,13 @@ class SmoothPursuitYesNoWidget(GazeWidget):
 
         # Behaviour
         allow_empty_submit: bool = False,
-        labels: Optional[List[str]] = None,  # ["yes","no"] optionally
     ):
         super().__init__(parent)
-
         self.question = question
         if labels is None:
-            self.labels = ["yes", "no"]
+            self.labels = ["A", "B", "C", "D"]
         else:
-            assert len(labels) == 2, "SmoothPursuitYesNoWidget requires exactly 2 labels."
+            assert len(labels) == 4, "SmoothPursuitMultipleChoiceWidget requires exactly 4 labels."
             self.labels = list(labels)
 
         self.window_ms = int(window_ms)
@@ -176,10 +174,10 @@ class SmoothPursuitYesNoWidget(GazeWidget):
         self._sx: List[float] = []
         self._sy: List[float] = []
 
-        # Single-select state
-        self.selected: Optional[str] = None
+        # Multi-select state
+        self.selected: Set[str] = set()
 
-        # Candidate stability (sample-count based, like MCQ)
+        # Candidate stability
         self._candidate: Optional[str] = None
         self._candidate_count = 0
         self._submit_count = 0
@@ -205,33 +203,28 @@ class SmoothPursuitYesNoWidget(GazeWidget):
         self.log_toggles = 0
         self.log_resets = 0
         self.log_backspaces = 0
-        self.log_extra = "sp_yesno"
+        self.log_extra = "sp_mcq_multi"  # keep simple; MainWindow still logs it
 
     # ---------------- Motion primitives ----------------
 
     @staticmethod
-    def _rect_path_pos(
-        cx: float,
-        cy: float,
-        half_w: float,
-        half_h: float,
-        t: float,
-        freq_hz: float,
-        clockwise: bool,
-    ):
-        """
-        Axis-aligned rectangle path along edges, like MCQ square path.
+    def _circle_pos(cx: float, cy: float, r: float, t: float, freq_hz: float, clockwise: bool):
+        omega = 2.0 * math.pi * freq_hz
+        ang = omega * t
+        s = 1.0 if clockwise else -1.0
+        x = cx + r * math.cos(s * ang)
+        y = cy + r * math.sin(s * ang)
+        return x, y
 
-        clockwise=True  => CW
-        clockwise=False => CCW
-        """
+    @staticmethod
+    def _square_pos(cx: float, cy: float, half_side: float, t: float, freq_hz: float, clockwise: bool):
         u = (t * freq_hz) % 1.0
         if not clockwise:
             u = (1.0 - u) % 1.0
 
         p = u * 4.0
-        x0, x1 = cx - half_w, cx + half_w
-        y0, y1 = cy - half_h, cy + half_h
+        x0, x1 = cx - half_side, cx + half_side
+        y0, y1 = cy - half_side, cy + half_side
 
         if 0.0 <= p < 1.0:
             x = x0 + (x1 - x0) * p
@@ -251,13 +244,11 @@ class SmoothPursuitYesNoWidget(GazeWidget):
 
         return x, y
 
-    # In SmoothPursuitYesNoWidget._layout(), move the YES/NO centers a bit higher.
-
     def _layout(self) -> Tuple[QRect, Dict[str, Tuple[float, float]], Dict[str, Dict[str, float]], QRect, float]:
         w = max(1, self.width())
         h = max(1, self.height())
 
-        # Smaller center question box (match MCQ sizing)
+        # Smaller center question box (per request)
         q_w = int(w * 0.52)
         q_h = int(h * 0.22)
         qx = (w - q_w) // 2
@@ -265,30 +256,33 @@ class SmoothPursuitYesNoWidget(GazeWidget):
         question_rect = QRect(qx, qy, q_w, q_h)
 
         base = min(w, h)
-        orbit_size = max(260.0, base * self.orbit_scale)
-        half_w = orbit_size * 0.50
-        half_h = orbit_size * 0.60
+        orbit_size = max(280.0, base * self.orbit_scale)
+        circle_r = orbit_size * 0.50
+        square_half = orbit_size * 0.50
 
+        # margins keep orbits inside screen
         margin = int(orbit_size * 0.72) + 32
 
-        # WAS: mid_y = float(h * 0.60)
-        # NOW: slightly higher
-        mid_y = float(h * 0.54)
-
+        top_y = float(margin)
+        bottom_y = float(h * 0.66)
         left_x = float(margin)
         right_x = float(w - margin)
 
         centers = {
-            self.labels[0]: (left_x, mid_y),  # yes (left)
-            self.labels[1]: (right_x, mid_y),  # no  (right)
+            self.labels[0]: (left_x, top_y),
+            self.labels[1]: (right_x, top_y),
+            self.labels[2]: (left_x, bottom_y),
+            self.labels[3]: (right_x, bottom_y),
         }
 
         orbit_params = {
-            self.labels[0]: {"half_w": half_w, "half_h": half_h},
-            self.labels[1]: {"half_w": half_w, "half_h": half_h},
+            self.labels[0]: {"circle_r": circle_r},
+            self.labels[1]: {"circle_r": circle_r},
+            self.labels[2]: {"square_half": square_half},
+            self.labels[3]: {"square_half": square_half},
         }
 
-        # Submit button (same approach as MCQ)
+        # Submit button
         submit_w = int(max(380, w * 0.28))
         submit_h = int(max(90, h * 0.095))
         submit_y = int(h * 0.88)
@@ -303,17 +297,25 @@ class SmoothPursuitYesNoWidget(GazeWidget):
 
         pos: Dict[str, Tuple[float, float]] = {}
 
-        # YES (left): rectangle CCW
+        # A circle cw
         cx, cy = centers[self.labels[0]]
-        hw = orbit_params[self.labels[0]]["half_w"]
-        hh = orbit_params[self.labels[0]]["half_h"]
-        pos[self.labels[0]] = self._rect_path_pos(cx, cy, hw, hh, t, self.option_frequency_hz, clockwise=False)
+        r = orbit_params[self.labels[0]]["circle_r"]
+        pos[self.labels[0]] = self._circle_pos(cx, cy, r, t, self.option_frequency_hz, clockwise=True)
 
-        # NO (right): rectangle CW
+        # B circle ccw
         cx, cy = centers[self.labels[1]]
-        hw = orbit_params[self.labels[1]]["half_w"]
-        hh = orbit_params[self.labels[1]]["half_h"]
-        pos[self.labels[1]] = self._rect_path_pos(cx, cy, hw, hh, t, self.option_frequency_hz, clockwise=True)
+        r = orbit_params[self.labels[1]]["circle_r"]
+        pos[self.labels[1]] = self._circle_pos(cx, cy, r, t, self.option_frequency_hz, clockwise=False)
+
+        # C square cw
+        cx, cy = centers[self.labels[2]]
+        hs = orbit_params[self.labels[2]]["square_half"]
+        pos[self.labels[2]] = self._square_pos(cx, cy, hs, t, self.option_frequency_hz, clockwise=True)
+
+        # D square ccw
+        cx, cy = centers[self.labels[3]]
+        hs = orbit_params[self.labels[3]]["square_half"]
+        pos[self.labels[3]] = self._square_pos(cx, cy, hs, t, self.option_frequency_hz, clockwise=False)
 
         # SUBMIT horizontal oscillation
         submit_rect = QRect(submit_rect_base)
@@ -326,6 +328,10 @@ class SmoothPursuitYesNoWidget(GazeWidget):
     # ---------------- Rolling buffer maintenance ----------------
 
     def _estimate_max_lag_samples(self) -> int:
+        """
+        Estimate how many samples correspond to max_lag_ms using the current buffer timestamps.
+        Falls back to 30 FPS if not enough samples.
+        """
         if len(self._t) >= 6:
             dt = float(np.median(np.diff(np.asarray(self._t, dtype=float))))
             if dt <= 1e-6:
@@ -351,9 +357,6 @@ class SmoothPursuitYesNoWidget(GazeWidget):
                 self._ty[lab].pop(0)
             self._sx.pop(0)
             self._sy.pop(0)
-
-    def _now(self) -> float:
-        return time.monotonic()
 
     # ---------------- Gaze input ----------------
 
@@ -437,21 +440,24 @@ class SmoothPursuitYesNoWidget(GazeWidget):
 
         return float((self.corr_weight * corr) + (self.proximity_weight * prox_mapped))
 
-    # ---------------- Actions ----------------
+    def _now(self) -> float:
+        return time.monotonic()
 
-    def _select(self, choice: str) -> None:
-        # single-select (set)
-        self.selected = choice
+    def _toggle_label(self, lab: str) -> None:
+        if lab in self.selected:
+            self.selected.remove(lab)
+        else:
+            self.selected.add(lab)
 
         self.log_toggles += 1
         self.click_index += 1
-        self.clicked.emit(self.click_index, f"select:{choice}")
+        self.clicked.emit(self.click_index, f"toggle:{lab}")
         QApplication.beep()
 
         self._toggle_block_until = self._now() + (self.toggle_cooldown_ms / 1000.0)
 
     def _submit(self) -> None:
-        if (not self.allow_empty_submit) and (self.selected is None):
+        if (not self.allow_empty_submit) and (not self.selected):
             return
 
         self.click_index += 1
@@ -460,8 +466,8 @@ class SmoothPursuitYesNoWidget(GazeWidget):
 
         self._submit_block_until = self._now() + (self.submit_cooldown_ms / 1000.0)
 
-        # IMPORTANT: emit ONLY choice string for consistent logging
-        self.submitted.emit(self.selected if self.selected is not None else "")
+        # IMPORTANT: emit ONLY choices list, for consistent logging in MainWindow
+        self.submitted.emit(sorted(self.selected))
 
     def _update_decision(self) -> None:
         now = self._now()
@@ -505,13 +511,13 @@ class SmoothPursuitYesNoWidget(GazeWidget):
                 self._submit()
                 return
 
-        # select
+        # toggle
         if now >= self._toggle_block_until:
             if self._candidate is not None and self._candidate_count >= self.toggle_stable_samples:
                 lab = self._candidate
                 self._candidate = None
                 self._candidate_count = 0
-                self._select(lab)
+                self._toggle_label(lab)
 
     # ---------------- Drawing ----------------
 
@@ -533,16 +539,34 @@ class SmoothPursuitYesNoWidget(GazeWidget):
         f.setPointSize(max(16, int(h * 0.028)))
         painter.setFont(f)
 
-        sel_txt = (self.selected.upper() if self.selected else "-")
         info_rect = QRect(28, 18, w - 56, int(h * 0.13))
+        sel_txt = ", ".join(sorted(self.selected)) if self.selected else "-"
         painter.drawText(
             info_rect,
             Qt.AlignLeft | Qt.AlignVCenter | Qt.TextWordWrap,
-            "Follow YES/NO to SELECT. Follow SUBMIT to submit.\n"
+            "Follow a moving label to TOGGLE it (multi-select). Follow SUBMIT to submit.\n"
             f"Selected: {sel_txt}",
         )
 
-        # submit path line (match MCQ)
+        # orbit outlines
+        """
+        orbit_pen = QPen(Qt.gray)
+        orbit_pen.setWidth(3)
+        painter.setPen(orbit_pen)
+        painter.setBrush(Qt.NoBrush)
+
+        for lab in (self.labels[0], self.labels[1]):  # circles
+            cx, cy = centers[lab]
+            r = orbit_params[lab]["circle_r"]
+            painter.drawEllipse(int(cx - r), int(cy - r), int(2 * r), int(2 * r))
+
+        for lab in (self.labels[2], self.labels[3]):  # squares
+            cx, cy = centers[lab]
+            hs = orbit_params[lab]["square_half"]
+            painter.drawRect(int(cx - hs), int(cy - hs), int(2 * hs), int(2 * hs))
+        """
+
+        # submit path line
         submit_path_pen = QPen(Qt.gray)
         submit_path_pen.setWidth(3)
         painter.setPen(submit_path_pen)
@@ -550,7 +574,10 @@ class SmoothPursuitYesNoWidget(GazeWidget):
         ax = float(submit_ax2)
         painter.drawLine(int(w * 0.5 - ax), int(y_line), int(w * 0.5 + ax), int(y_line))
 
-        # question box text (no frame)
+        # question box
+        # painter.setPen(QPen(Qt.white, 3))
+        # painter.drawRect(question_rect)
+
         qfont = painter.font()
         qfont.setPointSize(max(18, int(h * 0.030)))
         painter.setFont(qfont)
@@ -569,17 +596,11 @@ class SmoothPursuitYesNoWidget(GazeWidget):
                 highlight_opt = best
 
         # draw ONLY moving texts (no circles)
-        # Map labels to display text
-        disp = {
-            self.labels[0]: "YES" if self.labels[0].lower() == "yes" else str(self.labels[0]).upper(),
-            self.labels[1]: "NO" if self.labels[1].lower() == "no" else str(self.labels[1]).upper(),
-        }
-
         for lab in self.labels:
             x, y = opt_pos[lab]
-            selected = (lab == self.selected)
+            selected = (lab in self.selected)
             highlight = (lab == highlight_opt)
-            self._draw_moving_label(painter, x, y, disp.get(lab, str(lab)), selected=selected, highlight=highlight)
+            self._draw_moving_label(painter, x, y, str(lab), selected=selected, highlight=highlight)
 
         # submit rect
         self._draw_submit(painter, submit_rect)
@@ -594,7 +615,6 @@ class SmoothPursuitYesNoWidget(GazeWidget):
 
     def _draw_moving_label(self, painter: QPainter, x: float, y: float, text: str, selected: bool, highlight: bool):
         f = painter.font()
-        f.setBold(True)
         f.setPointSize(max(30, int(self.height() * 0.050)))
         painter.setFont(f)
 
@@ -605,7 +625,8 @@ class SmoothPursuitYesNoWidget(GazeWidget):
         else:
             painter.setPen(QPen(Qt.white, 3))
 
-        rect = QRect(int(x - 120), int(y - 60), 240, 120)
+        # Draw centered text at (x,y)
+        rect = QRect(int(x - 80), int(y - 50), 160, 100)
         painter.drawText(rect, Qt.AlignCenter, text)
 
     def _draw_submit(self, painter: QPainter, rect: QRect):
@@ -614,9 +635,10 @@ class SmoothPursuitYesNoWidget(GazeWidget):
         f.setPointSize(max(22, int(self.height() * 0.038)))
         painter.setFont(f)
 
-        sel_txt = (self.selected.upper() if self.selected else "-")
+        sel_txt = ",".join(sorted(self.selected)) if self.selected else "-"
 
-        if (not self.allow_empty_submit) and (self.selected is None):
+        # Optional: wenn empty submit nicht erlaubt & nichts gewählt => etwas “dezent”
+        if (not self.allow_empty_submit) and (not self.selected):
             painter.setPen(QPen(Qt.gray, 3))
         else:
             painter.setPen(QPen(Qt.white, 4))
