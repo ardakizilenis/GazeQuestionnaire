@@ -7,7 +7,7 @@ This project is intended for **HCI / Eye-Tracking research**, usability studies,
 
 ---
 
-## ✨ Features
+## Features
 
 - **Multiple gaze-based interaction techniques**
   - Blink-based selection
