@@ -38,23 +38,6 @@ This project is intended for **HCI / Eye-Tracking research**, usability studies,
 
 ---
 
-## 🧠 Scientific Background
-
-The smooth pursuit interaction logic is based on established principles from eye-tracking research:
-
-- Trajectory matching between gaze and moving targets
-- Lag-compensated cross-correlation
-- Temporal stability filtering
-- Refractory periods (cooldowns)
-
-The approach is inspired by work such as:
-
-- Vidal et al., *Pursuits: Eye-Based Interaction with Moving Targets* (CHI)
-- Khamis et al., *VRPursuits*
-- Startsev et al., *Automatic Detection of Smooth Pursuit*
-
----
-
 ## Requirements
 
 - Python 3.10+
@@ -82,24 +65,14 @@ python main.py
 
 ---
 
-## Questionnaire JSON Format
-
-Supported keys per item:
-
-- type: question type (see below)
-- text: question or info text (required)
-- activation: blink or dwell (non-SP types only)
-- duration: duration in seconds (info screens only)
-- labels: list of labels (MCQ = 4, Likert = 5)
-
----
-
 ## Logging & Output
 
 Each run creates a new directory:
 
 data/run_YYYYMMDD_HHMMSS/
+
 -> gaze_questionnaire_log.csv
+
 -> gaze_questionnaire_clicks.csv
 
 **gaze_questionnaire_log.csv**
