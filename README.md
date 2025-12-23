@@ -47,16 +47,22 @@ This project is intended for **HCI / Eye-Tracking research**, usability studies,
 ---
 
 ## Quick Start
-1) Build or edit a questionnaire
+1) Start the Questionnaire Builder
 
 `
 python tools/questionnaire_builder.py
 `
 
-3) Save the questionnaire as a JSON file (e.g., questionnaires/questionnaire.json).
+2) Click on the "Load" Button (Second Option in the Top Menu Bar) and navigate to `questionnaires/`
 
-4) Run the questionnaire
-python main.py
+3) Click the `questionnaire.json` file
+
+4) Edit or delete Questions in the Demo File
+
+5) When you are finished, simply save the questionnaire (Third Menu Option) in `questionnaires/questionnaire.json`.
+
+6) Run the questionnaire
+`python main.py`
 
 3) Execution flow:
 - 9-point gaze calibration
