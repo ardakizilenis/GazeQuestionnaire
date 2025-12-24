@@ -3,13 +3,14 @@ import json
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QSize, Signal
-from PySide6.QtGui import QAction, QFont, QIcon
+from PySide6.QtGui import QAction, QFont, QIcon, QColor, QPainter, QPen
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QListWidget, QListWidgetItem, QTextEdit, QComboBox, QSpinBox,
     QFileDialog, QMessageBox, QFormLayout, QDialog, QDialogButtonBox,
-    QLabel, QToolBar, QStyle
+    QLabel, QToolBar, QStyle, QStyledItemDelegate
 )
+
 
 QUESTION_TYPES = ["info", "yesno", "mcq", "likert", "textgrid", "sp_yesno", "sp_mcq", "sp_likert"]
 ACTIVATIONS = ["dwell", "blink"]
@@ -51,7 +52,7 @@ def light_stylesheet() -> str:
     }
     QListWidget::item { padding: 8px; }
     QListWidget::item:selected {
-        background: #dbeafe;
+        background: transparent;
         color: #111827;
         border-radius: 6px;
     }
@@ -106,7 +107,7 @@ def dark_stylesheet() -> str:
     QToolButton:pressed { background: #3c3c3c; }
 
     QListWidget {
-        background: #252526;
+        background: transparent;
         border: 1px solid #333;
         border-radius: 10px;
     }
@@ -138,6 +139,32 @@ def dark_stylesheet() -> str:
     QDialog { background: #252526; }
     """
 
+def type_colors(theme: str) -> dict:
+    """
+    Returns per-question-type colors for card background + accent stripe.
+    """
+    if theme == "dark":
+        return {
+            "info":     {"bg": "#1f2937", "accent": "#60a5fa", "fg": "#e5e7eb"},
+            "yesno":    {"bg": "#172554", "accent": "#3b82f6", "fg": "#e5e7eb"},
+            "mcq":      {"bg": "#14532d", "accent": "#22c55e", "fg": "#e5e7eb"},
+            "likert":   {"bg": "#3f1d2f", "accent": "#f472b6", "fg": "#fce7f3"},
+            "textgrid": {"bg": "#3b2f0b", "accent": "#f59e0b", "fg": "#fff7ed"},
+            "sp_yesno": {"bg": "#0f172a", "accent": "#a78bfa", "fg": "#e5e7eb"},
+            "sp_mcq":   {"bg": "#0f172a", "accent": "#34d399", "fg": "#e5e7eb"},
+            "sp_likert":{"bg": "#0f172a", "accent": "#fb7185", "fg": "#ffe4e6"},
+        }
+    else:
+        return {
+            "info":     {"bg": "#eef2ff", "accent": "#2563eb", "fg": "#111827"},
+            "yesno":    {"bg": "#eff6ff", "accent": "#1d4ed8", "fg": "#111827"},
+            "mcq":      {"bg": "#ecfdf5", "accent": "#16a34a", "fg": "#064e3b"},
+            "likert":   {"bg": "#fdf2f8", "accent": "#db2777", "fg": "#111827"},
+            "textgrid": {"bg": "#fffbeb", "accent": "#d97706", "fg": "#111827"},
+            "sp_yesno": {"bg": "#f5f3ff", "accent": "#7c3aed", "fg": "#111827"},
+            "sp_mcq":   {"bg": "#ecfdf5", "accent": "#059669", "fg": "#064e3b"},
+            "sp_likert":{"bg": "#fff1f2", "accent": "#e11d48", "fg": "#111827"},
+        }
 
 def apply_theme(app: QApplication, mode: str):
     app.setStyle("Fusion")
@@ -166,6 +193,64 @@ class ReorderListWidget(QListWidget):
 
 
 # ------------------ Item Editor ------------------
+
+class CardItemDelegate(QStyledItemDelegate):
+    def __init__(self, parent=None, get_theme=lambda: "dark"):
+        super().__init__(parent)
+        self.get_theme = get_theme
+
+    def paint(self, painter: QPainter, option, index):
+        painter.save()
+
+        theme = self.get_theme()
+        palette = type_colors(theme)
+
+        it = index.data(Qt.UserRole) or {}
+        qtype = it.get("type", "info")
+        c = palette.get(qtype, palette["info"])
+
+        # Full-width rect inside viewport with margins
+        r = option.rect.adjusted(10, 6, -10, -6)
+
+        bg = QColor(c["bg"])
+        fg = QColor(c["fg"])
+        accent = QColor(c["accent"])
+
+        # Selection / hover
+        selected = bool(option.state & QStyle.State_Selected)
+        hovered = bool(option.state & QStyle.State_MouseOver)
+
+        if selected:
+            border = QColor(accent)
+        else:
+            border = QColor("#000000")
+            border.setAlpha(45 if hovered else (35 if theme == "dark" else 25))
+
+        painter.setRenderHint(QPainter.Antialiasing, True)
+
+        # Card background + border
+        painter.setPen(QPen(border, 1))
+        painter.setBrush(bg)
+        painter.drawRoundedRect(r, 10, 10)
+
+        # Accent stripe (left)
+        stripe = r.adjusted(0, 0, -r.width() + 6, 0)
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(accent)
+        painter.drawRoundedRect(stripe, 10, 10)
+
+        # Text
+        text = index.data(Qt.DisplayRole) or ""
+        text_rect = r.adjusted(14, 10, -10, -10)
+        painter.setPen(fg)
+        painter.drawText(text_rect, Qt.TextWordWrap | Qt.AlignVCenter, text)
+
+        painter.restore()
+
+    def sizeHint(self, option, index):
+        base = super().sizeHint(option, index)
+        return QSize(base.width(), max(56, base.height() + 18))
+
 
 class ItemEditorDialog(QDialog):
     def __init__(self, parent=None, existing=None):
@@ -310,7 +395,7 @@ class BuilderMainWindow(QMainWindow):
         self.act_new.setShortcut("Ctrl+N")
         self.act_open.setShortcut("Ctrl+O")
         self.act_save.setShortcut("Ctrl+S")
-        self.act_del.setShortcut("Del")
+        self.act_del.setShortcut("Backspace")
 
         # Theme toggle
         self.icon_sun = self.style().standardIcon(QStyle.SP_DialogYesButton)
@@ -340,11 +425,18 @@ class BuilderMainWindow(QMainWindow):
 
     def _build_ui(self):
         self.list_widget = ReorderListWidget()
+        self.list_widget.setItemDelegate(CardItemDelegate(self.list_widget, get_theme=lambda: self.theme))
+        self.list_widget.setWordWrap(True)
+        self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.list_widget.setVerticalScrollMode(QListWidget.ScrollPerPixel)
+        self.list_widget.setSpacing(6)
+
         self.list_widget.orderChanged.connect(self.on_list_reordered)
         self.list_widget.itemDoubleClicked.connect(lambda _: self.edit_item())
 
         self.json_preview = QTextEdit()
         self.json_preview.setReadOnly(True)
+        self.list_widget.setMouseTracking(True)
 
         left = QVBoxLayout()
         left.addWidget(QLabel("Items"))
@@ -443,6 +535,7 @@ class BuilderMainWindow(QMainWindow):
             self.items.append(dlg.get_item())
             self.refresh()
             self.list_widget.setCurrentRow(len(self.items) - 1)
+            self.save_json()
             self.statusBar().showMessage("Item added", 1500)
 
     def edit_item(self):
@@ -454,6 +547,7 @@ class BuilderMainWindow(QMainWindow):
             self.items[row] = dlg.get_item()
             self.refresh()
             self.list_widget.setCurrentRow(row)
+            self.save_json()
             self.statusBar().showMessage("Item updated", 1500)
 
     def delete_item(self):
@@ -462,6 +556,7 @@ class BuilderMainWindow(QMainWindow):
             return
         del self.items[row]
         self.refresh()
+        self.save_json()
         self.statusBar().showMessage("Item deleted", 1500)
 
     def new_json(self):

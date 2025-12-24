@@ -5,24 +5,24 @@
   },
   "items": [
     {
-      "duration": 5,
-      "text": "--------------------\n\nWelcome to Gaze Questionnaire!\n\n--------------------",
-      "type": "info"
+      "type": "info",
+      "text": "Welcome to Gaze Questionnaire!",
+      "duration": 5
     },
     {
-      "duration": 8,
-      "text": "--------------------\n\nAnswer multiple Question-Types with Blink, Dwell or Smooth Pursuit.\nThis is a Demo Questionnaire. Enjoy! 🙂\n\n--------------------",
-      "type": "info"
+      "type": "info",
+      "text": "Answer multiple Question-Types with Blink, Dwell or Smooth Pursuit.\nThis is a Demo Questionnaire. Enjoy! 🙂",
+      "duration": 8
     },
     {
-      "duration": 5,
-      "text": "--------------------\n\nBLOCK I:\nDwell Time Selection\n\n--------------------",
-      "type": "info"
+      "type": "info",
+      "text": "BLOCK I:\nDwell Time Selection",
+      "duration": 5
     },
     {
-      "duration": 5,
-      "text": "--------------------\n\nDwell 1-2 Seconds on a target to select\n\n--------------------",
-      "type": "info"
+      "type": "info",
+      "text": "Dwell 1-2 Seconds on a target to select",
+      "duration": 5
     },
     {
       "duration": 7,
@@ -78,14 +78,14 @@
       "type": "textgrid"
     },
     {
-      "duration": 5,
-      "text": "--------------------\n\nBLOCK II:\nBlink Gesture Selection\n\n--------------------",
-      "type": "info"
+      "type": "info",
+      "text": "BLOCK II:\nBlink Gesture Selection",
+      "duration": 5
     },
     {
-      "duration": 5,
-      "text": "--------------------\n\nBlink 0.2 - 0.3 Seconds to select a target\n\n--------------------",
-      "type": "info"
+      "type": "info",
+      "text": "Blink 0.2 - 0.3 Seconds to select a target",
+      "duration": 5
     },
     {
       "duration": 7,
@@ -141,14 +141,14 @@
       "type": "textgrid"
     },
     {
-      "duration": 5,
-      "text": "--------------------\n\nBLOCK III:\nSmooth Pursuit Selection\n\n--------------------",
-      "type": "info"
+      "type": "info",
+      "text": "BLOCK III:\nSmooth Pursuit Selection",
+      "duration": 5
     },
     {
-      "duration": 5,
-      "text": "--------------------\n\nFollow a target with your gaze for a while to select it\n\n--------------------",
-      "type": "info"
+      "type": "info",
+      "text": "Follow a target with your gaze for a while to select it",
+      "duration": 5
     },
     {
       "duration": 5,
@@ -194,9 +194,9 @@
       "type": "sp_mcq"
     },
     {
-      "duration": 5,
-      "text": "--------------------\n\nYour Log has been saved in the data/-Folder.\nThank you for participating! \n\n--------------------",
-      "type": "info"
+      "type": "info",
+      "text": "Your Log has been saved in the data/-Folder.\nThank you for participating!",
+      "duration": 5
     }
   ]
 }
