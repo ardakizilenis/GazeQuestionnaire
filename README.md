@@ -90,7 +90,7 @@ python main.py
 > 
 > 1. `pip uninstall -y mediapipe `
 > 2. `pip uninstall -y mediapipe-silicon mediapipe-rpi 2>/dev/null || true`
-> 3. `pip install "mediapipe==0.10.14`
+> 3. `pip install mediapipe==0.10.14`
 
 
 Execution flow:
