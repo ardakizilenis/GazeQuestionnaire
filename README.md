@@ -53,6 +53,11 @@ This project is intended for **HCI / Eye-Tracking research**, usability studies,
 python tools/questionnaire_builder.py
 `
 
+
+>**Hint**: It may require you to configure your python-Interpreter by adding a virtual environment (.venv) and install the pyside6-Package
+> 
+>**Hint**: It may require you to install pyside6 the package, if you do not already have it.
+
 2) Click on the "Load" Button (Second Option in the Top Menu Bar) and navigate to `questionnaires/`
 
 3) Click the `questionnaire.json` file
