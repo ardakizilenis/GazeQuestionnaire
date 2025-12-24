@@ -1,3 +1,7 @@
 # Project exclude paths
 /env/
 notes.txt
+# macOS
+.DS_Store
+# JetBrains / PyCharm
+.idea/
