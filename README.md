@@ -40,7 +40,7 @@ This project is intended for **HCI / Eye-Tracking research**, usability studies,
 
 ## Requirements
 
-- Python 3.12 (only! not working with a higher Python Version because of dependency conflicts)
+- Python 3.12
 - Webcam (or compatible video source)
 - Supported OS: Windows, macOS, Linux
 
@@ -52,12 +52,6 @@ This project is intended for **HCI / Eye-Tracking research**, usability studies,
 `
 python tools/questionnaire_builder.py
 `
-
-
->**Hint**: It may require you to configure your python-Interpreter and adding a virtual environment (.venv)
-> 
->**Hint**: It may require you to install pyside6 the package, if you do not already have it.
-
 2) Click on the "Load" Button (Second Option in the Top Menu Bar) and navigate to `questionnaires/`
 
 3) Click the `questionnaire.json` file
@@ -72,11 +66,37 @@ python tools/questionnaire_builder.py
 python main.py
 `
 
+
+>**Troubleshooting I: Virtual Environment** 
+>
+> If you are on Mac, it is required to configure your python-Interpreter and adding a virtual environment (.venv). 
+> If you have issues go to the project root and follow the following steps on the Terminal:
+> 1. `brew install python3.12@`
+> 2. `python3.12 -m venv env`
+> 3. `source env/bin/activate`
+> 4. `pip install --upgrade pip`
+> 5. `pip install pyside6`
+> 6. `pip install eyetrax`
+> 7. Set your Interpreter to `GazeQuestionnaire/env/bin/python`
+> 
+>**Troubleshooting II: Outdated mediapipe** 
+> 
+> If you are on Mac and you get an Error like this: 
+> >AttributeError: module 'mediapipe' has no attribute 'solution'
+> 
+> the mediapipe package might be old or damaged. You have to uninstall and reinstall mediapipe to solve this issue
+> 
+> Follow these steps on the Terminal in the virtual environment:
+> 
+> 1. `pip uninstall -y mediapipe `
+> 2. `pip uninstall -y mediapipe-silicon mediapipe-rpi 2>/dev/null || true`
+> 3. `pip install "mediapipe==0.10.14`
+
+
 Execution flow:
 - 9-point gaze calibration
 - Kalman-Filter Tuning
 - Fullscreen questionnaire with Questions from the JSON
-
 ---
 
 ## Logging & Output
