@@ -348,18 +348,18 @@ class BuilderMainWindow(QMainWindow):
 
         left = QVBoxLayout()
         left.addWidget(QLabel("Items"))
-        left.addWidget(self.list_widget, 1)
+        left.addWidget(self.list_widget)
 
-        right = QVBoxLayout()
-        right.addWidget(QLabel("JSON Preview"))
-        right.addWidget(self.json_preview, 1)
+        # right = QVBoxLayout()
+        # right.addWidget(QLabel("JSON Preview"))
+        # right.addWidget(self.json_preview, 1)
 
         root = QWidget()
         layout = QHBoxLayout(root)
         layout.setSpacing(14)
         layout.setContentsMargins(12, 12, 12, 12)
         layout.addLayout(left, 1)
-        layout.addLayout(right, 1)
+        # layout.addLayout(right, 1)
         self.setCentralWidget(root)
 
         self.refresh()

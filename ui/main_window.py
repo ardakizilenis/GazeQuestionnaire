@@ -1,33 +1,71 @@
 # ui/main_window.py
+
 from __future__ import annotations
 
-import os, time, csv
+import os
+import time
+import csv
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-from PySide6.QtWidgets import QMainWindow, QApplication
-from gaze.eyetracker_worker import EyeTrackerWorker
-from ui.SmoothPursuit_MultipleChoiceWidget import SmoothPursuitMultipleChoiceWidget
-from ui.YesNoQuestionWidget import YesNoQuestionWidget
-from ui.MultipleChoiceQuestionWidget import MultipleChoiceQuestionWidget
-from ui.LikertScaleQuestionWidget import LikertScaleQuestionWidget
-from ui.InfoWidget import InfoWidget
-from ui.SmoothPursuit_YesNoWidget import SmoothPursuitYesNoWidget
-from ui.SmoothPursuit_LikertScaleWidget import SmoothPursuitLikertScaleWidget
 
+from PySide6.QtWidgets import QMainWindow, QApplication
+
+from gaze.eyetracker_worker import EyeTrackerWorker
+from ui.InfoWidget import InfoWidget
+from ui.LikertScaleQuestionWidget import LikertScaleQuestionWidget
+from ui.MultipleChoiceQuestionWidget import MultipleChoiceQuestionWidget
+from ui.SmoothPursuit_LikertScaleWidget import SmoothPursuitLikertScaleWidget
+from ui.SmoothPursuit_MultipleChoiceWidget import SmoothPursuitMultipleChoiceWidget
+from ui.SmoothPursuit_YesNoWidget import SmoothPursuitYesNoWidget
 from ui.TextInputWidget import TextInputWidget
+from ui.YesNoQuestionWidget import YesNoQuestionWidget
 
 
 class MainWindow(QMainWindow):
     """
-    Central Window for the Gaze-Questionnaire.
+    Main application window that orchestrates the gaze-based questionnaire.
 
-      - has a queue of questions with the selection methods (info/yesno/mcq/likert/textgrid/sp_yesno)
-      - shows the right widgets from top to bottom
-      - controls EyeTrackerWorker (Gaze + Blink)
-      - collects the logs & writes them in a CSV
+    Responsibilities
+    ---------------
+    - Maintains a queue of questionnaire items (info/yesno/mcq/likert/textgrid/smooth pursuit variants).
+    - Creates and displays the appropriate widget for each item.
+    - Starts and manages an EyeTrackerWorker that streams gaze samples and blink state.
+    - Collects per-question summary logs and per-click logs.
+    - Writes logs to CSV at the end (or on close).
+
+    Questionnaire Item Format
+    -------------------------
+    Each queued item is a dict with (some) keys:
+      - type: "info" | "yesno" | "mcq" | "likert" | "textgrid" | "sp_yesno" | "sp_mcq" | "sp_likert"
+      - text: question or info text
+      - activation: "blink" | "dwell" | "smooth_pursuit" | None
+      - duration: int seconds (only for "info")
+      - labels: list[str] optional (for mcq/likert and smooth pursuit variants)
+
+    Logging
+    -------
+    - gaze_questionnaire_log.csv: one row per non-info question (result + reaction time + counters)
+    - gaze_questionnaire_clicks.csv: one row per click/toggle activation (timing + area label)
     """
 
     def __init__(self, estimator, smoother, parent=None) -> None:
+        """
+        Initialize the main window and set up logging directories/files.
+
+        Parameters
+        ----------
+        estimator : Any
+            Eye tracking estimator object used by the EyeTrackerWorker.
+        smoother : Any
+            Smoothing/filtering object used by the EyeTrackerWorker.
+        parent : QWidget, optional
+            Parent Qt widget.
+
+        Notes
+        -----
+        - The window is shown fullscreen.
+        - A run-specific output directory is created under `<project_root>/data/run_YYYYMMDD_HHMMSS`.
+        """
         super().__init__(parent)
 
         self.estimator = estimator
@@ -36,22 +74,13 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Gaze Questionnaire")
         self.showFullScreen()
 
-        # Question Queue
-        # ... is a List of dicts like:
-        #   type: "info" | "yesno" | "mcq" | "likert" | "textgrid" | "sp_yesno" | "sp_mcq" | "sp_likert"
-        #   text: Question / Info-Text
-        #   activation: "blink" | "dwell"
-        #   duration: int (seconds, only for info-widget)
-        #   labels: list[str] (optional at likert and mcq)
         self.question_queue: List[Dict[str, Any]] = []
         self.current_index: int = -1
         self.current_widget = None
         self.question_counter: int = 0
 
-        # EyeTracker Worker
         self.worker: Optional[EyeTrackerWorker] = None
 
-        # Logging
         self.log_rows: List[Dict[str, Any]] = []
         self.click_rows: List[Dict[str, Any]] = []
         self.question_start_time: Optional[float] = None
@@ -69,101 +98,187 @@ class MainWindow(QMainWindow):
         self.log_filename = os.path.join(self.run_dir, "gaze_questionnaire_log.csv")
         self.click_filename = os.path.join(self.run_dir, "gaze_questionnaire_clicks.csv")
 
-    # APIs for Questionnaire Definition
-
     def info(self, text: str, duration_sec: int) -> None:
+        """
+        Enqueue an informational screen that auto-advances after a duration.
+
+        Parameters
+        ----------
+        text : str
+            Text to display.
+        duration_sec : int
+            Time in seconds before auto-advancing to the next item.
+
+        Returns
+        -------
+        None
+        """
         self.question_queue.append(
-            {
-                "type": "info",
-                "text": text,
-                "duration": int(duration_sec),
-                "activation": None,
-            }
+            {"type": "info", "text": text, "duration": int(duration_sec), "activation": None}
         )
 
     def enqueue_yesno(self, question: str, activation_mode: str) -> None:
-        self.question_queue.append(
-            {
-                "type": "yesno",
-                "text": question,
-                "activation": activation_mode,
-            }
-        )
+        """
+        Enqueue a classic (non-smooth-pursuit) yes/no question.
+
+        Parameters
+        ----------
+        question : str
+            Question text.
+        activation_mode : str
+            "blink" or "dwell".
+
+        Returns
+        -------
+        None
+        """
+        self.question_queue.append({"type": "yesno", "text": question, "activation": activation_mode})
 
     def enqueue_mcq(self, question: str, activation_mode: str, labels=None) -> None:
+        """
+        Enqueue a classic (non-smooth-pursuit) 4-option multiple choice question.
+
+        Parameters
+        ----------
+        question : str
+            Question text.
+        activation_mode : str
+            "blink" or "dwell".
+        labels : list[str] | None, optional
+            Exactly four labels. If None, the widget default labels are used.
+
+        Returns
+        -------
+        None
+        """
         self.question_queue.append(
-            {
-                "type": "mcq",
-                "text": question,
-                "activation": activation_mode,
-                "labels": labels,
-            }
+            {"type": "mcq", "text": question, "activation": activation_mode, "labels": labels}
         )
 
-    def enqueue_likert(
-        self,
-        question: str,
-        activation_mode: str,
-        labels: Optional[List[str]] = None
-    ) -> None:
+    def enqueue_likert(self, question: str, activation_mode: str, labels: Optional[List[str]] = None) -> None:
+        """
+        Enqueue a classic (non-smooth-pursuit) 5-option Likert scale question.
+
+        Parameters
+        ----------
+        question : str
+            Question text.
+        activation_mode : str
+            "blink" or "dwell".
+        labels : list[str] | None, optional
+            Exactly five labels. If None, the widget default labels are used.
+
+        Returns
+        -------
+        None
+        """
         self.question_queue.append(
-            {
-                "type": "likert",
-                "text": question,
-                "activation": activation_mode,
-                "labels": labels
-            }
+            {"type": "likert", "text": question, "activation": activation_mode, "labels": labels}
         )
 
     def enqueue_textgrid(self, question: str, activation_mode: str) -> None:
-        self.question_queue.append(
-            {
-                "type": "textgrid",
-                "text": question,
-                "activation": activation_mode,
-            }
-        )
+        """
+        Enqueue the gaze-based text input widget (3x3 grid).
+
+        Parameters
+        ----------
+        question : str
+            Prompt/question to display above the entered text.
+        activation_mode : str
+            "blink" or "dwell".
+
+        Returns
+        -------
+        None
+        """
+        self.question_queue.append({"type": "textgrid", "text": question, "activation": activation_mode})
 
     def enqueue_smoothpursuit_yesno(self, question: str) -> None:
-        self.question_queue.append(
-            {
-                "type": "sp_yesno",
-                "text": question,
-                "activation": "smooth_pursuit",
-            }
-        )
+        """
+        Enqueue a smooth-pursuit yes/no widget.
+
+        Parameters
+        ----------
+        question : str
+            Question text.
+
+        Returns
+        -------
+        None
+        """
+        self.question_queue.append({"type": "sp_yesno", "text": question, "activation": "smooth_pursuit"})
 
     def enqueue_smoothpursuit_mcq(self, question: str, labels=None) -> None:
+        """
+        Enqueue a smooth-pursuit multiple choice widget (multi-select).
+
+        Parameters
+        ----------
+        question : str
+            Question text.
+        labels : list[str] | None, optional
+            Exactly four labels. If None, widget default labels are used.
+
+        Returns
+        -------
+        None
+        """
         self.question_queue.append(
-            {
-                "type": "sp_mcq",
-                "text": question,
-                "activation": "smooth_pursuit",
-                "labels": labels
-            }
+            {"type": "sp_mcq", "text": question, "activation": "smooth_pursuit", "labels": labels}
         )
 
     def enqueue_smoothpursuit_likert(self, question: str, labels=None) -> None:
+        """
+        Enqueue a smooth-pursuit Likert widget (single-select, 5 options).
+
+        Parameters
+        ----------
+        question : str
+            Question text.
+        labels : list[str] | None, optional
+            Exactly five labels. If None, widget default labels are used.
+
+        Returns
+        -------
+        None
+        """
         self.question_queue.append(
-            {
-                "type": "sp_likert",
-                "text": question,
-                "activation": "smooth_pursuit",
-                "labels": labels
-            }
+            {"type": "sp_likert", "text": question, "activation": "smooth_pursuit", "labels": labels}
         )
 
-    # Questionnaire starts (after enqueuing
     def start_questionnaire(self) -> None:
-        """Von main.py aufrufen, nachdem alle Fragen hinzugefügt wurden."""
+        """
+        Start the questionnaire after all items have been enqueued.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        - Creates and starts the EyeTrackerWorker if it is not running yet.
+        - Resets the question index and immediately shows the first item.
+        """
         if self.worker is None:
             self.worker = EyeTrackerWorker(self.estimator, self.smoother)
             self.worker.start()
+
         self.current_index = -1
         self.show_next_question()
 
-    # Disconnect current widget after getting a signal
     def disconnect_current_widget(self) -> None:
+        """
+        Disconnect worker signals and widget signals from the currently displayed widget.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        - Safe to call even if no worker/widget exists.
+        - Disconnection is wrapped in try/except to tolerate already-disconnected signals.
+        """
         if self.worker is None or self.current_widget is None:
             return
 
@@ -185,10 +300,26 @@ class MainWindow(QMainWindow):
                 pass
 
     def show_next_question(self) -> None:
+        """
+        Advance the queue and display the next questionnaire item.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        - If the queue is exhausted, calls `finish_questionnaire()`.
+        - Sets up signal connections:
+            - gaze_updated -> widget.set_gaze
+            - blink_state  -> widget.set_blinking (if supported)
+            - widget.submitted -> on_question_submitted
+            - widget.clicked   -> on_widget_clicked
+        - Initializes per-question timing metadata for logging.
+        """
         self.disconnect_current_widget()
         self.current_index += 1
 
-        # finish questionnaire after last question
         if self.current_index >= len(self.question_queue):
             self.finish_questionnaire()
             return
@@ -197,57 +328,39 @@ class MainWindow(QMainWindow):
         qtype = meta["type"]
         text = meta.get("text", "")
         activation = meta.get("activation")
+
         logical_index: int | None = None
         if qtype != "info":
             self.question_counter += 1
             logical_index = self.question_counter
 
-        # Making Widget according to question type
         match qtype:
             case "info":
                 duration = meta.get("duration", 5)
                 widget = InfoWidget(text, duration_sec=duration)
             case "yesno":
-                widget = YesNoQuestionWidget(
-                    text,
-                    activation_mode=activation or "blink",
-                )
+                widget = YesNoQuestionWidget(text, activation_mode=activation or "blink")
             case "mcq":
                 widget = MultipleChoiceQuestionWidget(
-                    text,
-                    activation_mode=activation or "blink",
-                    labels=meta.get("labels"),
+                    text, activation_mode=activation or "blink", labels=meta.get("labels")
                 )
             case "likert":
                 widget = LikertScaleQuestionWidget(
-                    text,
-                    activation_mode=activation or "blink",
-                    labels=meta.get("labels")
+                    text, activation_mode=activation or "blink", labels=meta.get("labels")
                 )
             case "textgrid":
-                widget = TextInputWidget(
-                    text,
-                    activation_mode=activation or "dwell",
-                )
+                widget = TextInputWidget(text, activation_mode=activation or "dwell")
             case "sp_yesno":
                 widget = SmoothPursuitYesNoWidget(text)
             case "sp_mcq":
-                widget = SmoothPursuitMultipleChoiceWidget(
-                    text,
-                    labels=meta.get("labels")
-                )
+                widget = SmoothPursuitMultipleChoiceWidget(text, labels=meta.get("labels"))
             case "sp_likert":
-                widget = SmoothPursuitLikertScaleWidget(
-                    text,
-                    labels=meta.get("labels")
-                )
-
+                widget = SmoothPursuitLikertScaleWidget(text, labels=meta.get("labels"))
             case _:
                 print("Question Type unknown:", qtype)
                 self.show_next_question()
                 return
 
-        # Setting widget, connect signals
         self.current_widget = widget
         self.setCentralWidget(widget)
 
@@ -262,7 +375,6 @@ class MainWindow(QMainWindow):
         if hasattr(widget, "clicked"):
             widget.clicked.connect(self.on_widget_clicked)
 
-        # Logging Meta Data
         self.question_start_time = time.monotonic()
         self.last_click_time = self.question_start_time
         self.current_qmeta = {
@@ -273,20 +385,35 @@ class MainWindow(QMainWindow):
         }
 
     def on_widget_clicked(self, toggle_index, toggled_area):
+        """
+        Capture per-click logging emitted by the active widget.
+
+        Parameters
+        ----------
+        toggle_index : Any
+            Widget-provided click index (typically an int).
+        toggled_area : Any
+            Widget-provided descriptor of the activated element, used for click logs.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        - Stores both "time since question start" and "time since last click".
+        - Ignores clicks during "info" items (no per-question click logging).
+        """
         if self.question_start_time is None:
             return
 
         now = time.monotonic()
         time_from_start = now - self.question_start_time
 
-        if self.last_click_time is None:
-            time_since_last_click = None
-        else:
-            time_since_last_click = now - self.last_click_time
+        time_since_last_click = None if self.last_click_time is None else (now - self.last_click_time)
         self.last_click_time = now
 
         meta = self.current_qmeta or {}
-
         if meta.get("type") == "info":
             return
 
@@ -301,21 +428,38 @@ class MainWindow(QMainWindow):
             }
         )
 
-    # Get Answer
     def on_question_submitted(self, result):
+        """
+        Handle completion of the current questionnaire item.
+
+        Parameters
+        ----------
+        result : Any
+            Result emitted by the widget's `submitted` signal.
+            Examples:
+              - yes/no: "yes" or "no"
+              - mcq: list[str]
+              - likert: str
+              - textgrid: str
+              - info: None
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        - For non-info items, writes a summary row to `self.log_rows`.
+        - Immediately advances to the next item.
+        """
         end_time = time.monotonic()
-        rt_sec = (
-            end_time - self.question_start_time
-            if self.question_start_time is not None
-            else None
-        )
+        rt_sec = end_time - self.question_start_time if self.question_start_time is not None else None
 
         widget = self.current_widget
         meta = self.current_qmeta or {}
         qtype = meta.get("type")
         qnum = meta.get("index")
 
-        # Logg Questions without Info-Screens
         if qtype != "info" and widget is not None:
             log_entry = {
                 "question_index": qnum,
@@ -323,7 +467,7 @@ class MainWindow(QMainWindow):
                 "activation_mode": meta.get("activation"),
                 "question_text": meta.get("text"),
                 "result": repr(result),
-                "rt_sec": round(rt_sec, 3),
+                "rt_sec": None if rt_sec is None else round(rt_sec, 3),
                 "n_toggles": getattr(widget, "log_toggles", 0),
                 "n_resets": getattr(widget, "log_resets", 0),
                 "n_backspaces": getattr(widget, "log_backspaces", 0),
@@ -333,14 +477,24 @@ class MainWindow(QMainWindow):
 
         self.show_next_question()
 
-    # Logging and writing to csv
     def write_logs_to_csv(self) -> None:
+        """
+        Write per-question summary logs to `gaze_questionnaire_log.csv`.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        - Uses the keys of the first row as CSV header fields.
+        - If no rows exist, prints a message and returns.
+        """
         if not self.log_rows:
             print("No loggs have been saved")
             return
 
         fieldnames = list(self.log_rows[0].keys())
-
         try:
             with open(self.log_filename, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -351,6 +505,18 @@ class MainWindow(QMainWindow):
             print("Error writing Log-File:", e)
 
     def write_clicks_to_csv(self) -> None:
+        """
+        Write per-click logs to `gaze_questionnaire_clicks.csv`.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        - Uses a fixed schema to keep click logs stable across widget types.
+        - If no rows exist, prints a message and returns.
+        """
         if not self.click_rows:
             print("No loggs have been saved")
             return
@@ -366,6 +532,19 @@ class MainWindow(QMainWindow):
             print("Error writing Click-Logs:", e)
 
     def finish_questionnaire(self) -> None:
+        """
+        Stop eye tracking, write logs, and exit the application.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        - Stops and joins the EyeTrackerWorker if it is running.
+        - Writes both summary logs and click logs.
+        - Quits the Qt application.
+        """
         print("Questionnaire terminated. Loggs written and Question finished.")
 
         if self.worker is not None and self.worker.isRunning():
@@ -380,8 +559,24 @@ class MainWindow(QMainWindow):
 
         QApplication.quit()
 
-    # Closing Window
     def closeEvent(self, event) -> None:
+        """
+        Qt close event handler to ensure worker shutdown and log flushing.
+
+        Parameters
+        ----------
+        event : QCloseEvent
+            The Qt close event.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        - Attempts to stop the worker if running.
+        - Writes any accumulated logs before allowing the window to close.
+        """
         if self.worker is not None and self.worker.isRunning():
             try:
                 self.worker.stop()

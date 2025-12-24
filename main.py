@@ -1,21 +1,78 @@
 # main.py
 
-import sys
+from __future__ import annotations
+
 import json
-from PySide6.QtWidgets import QApplication
+import sys
 from pathlib import Path
+from typing import Any, Dict, List
+
+from PySide6.QtWidgets import QApplication
 
 from eyetrax import GazeEstimator, run_9_point_calibration
 from eyetrax.filters import KalmanSmoother, make_kalman
 
-
 from ui.main_window import MainWindow
 
-def load_questionnaire(path: str):
+
+def load_questionnaire(path: str) -> List[Dict[str, Any]]:
+    """
+    Load a questionnaire definition from a JSON file.
+
+    Parameters
+    ----------
+    path : str
+        Path to the questionnaire JSON file. The file must contain a top-level
+        object with an "items" key.
+
+    Returns
+    -------
+    list[dict[str, Any]]
+        The list of questionnaire items found under the "items" key.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the given path does not exist.
+    json.JSONDecodeError
+        If the file is not valid JSON.
+    KeyError
+        If the JSON does not contain an "items" key.
+    """
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     return data["items"]
 
-def enqueue_from_json(window, items):
+
+def enqueue_from_json(window: MainWindow, items: List[Dict[str, Any]]) -> None:
+    """
+    Enqueue questionnaire items onto a MainWindow based on their JSON definitions.
+
+    Parameters
+    ----------
+    window : MainWindow
+        The application window that manages the questionnaire queue.
+    items : list[dict[str, Any]]
+        Questionnaire items, each containing at least a "type" field and
+        optionally fields like "text", "activation", "duration", and "labels".
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    Supported item types:
+      - "info"
+      - "yesno"
+      - "mcq"
+      - "likert"
+      - "textgrid"
+      - "sp_yesno"
+      - "sp_mcq"
+      - "sp_likert"
+
+    Unknown types are ignored with a console message.
+    """
     for it in items:
         qtype = it["type"]
         text = it.get("text", "")
@@ -40,7 +97,22 @@ def enqueue_from_json(window, items):
         else:
             print("Unknown question type:", qtype)
 
-def main():
+
+def main() -> None:
+    """
+    Application entry point.
+
+    This function:
+    - creates and calibrates the gaze estimator,
+    - creates and tunes the Kalman smoother,
+    - creates the Qt application and main window,
+    - loads questionnaire JSON and enqueues items,
+    - starts and shows the questionnaire UI.
+
+    Returns
+    -------
+    None
+    """
     estimator = GazeEstimator()
     run_9_point_calibration(estimator)
 
@@ -57,6 +129,7 @@ def main():
     window.start_questionnaire()
     window.show()
     sys.exit(app.exec())
+
 
 if __name__ == "__main__":
     main()
