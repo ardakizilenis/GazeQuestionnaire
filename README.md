@@ -54,7 +54,7 @@ python tools/questionnaire_builder.py
 `
 
 
->**Hint**: It may require you to configure your python-Interpreter by adding a virtual environment (.venv) and install the pyside6-Package
+>**Hint**: It may require you to configure your python-Interpreter and adding a virtual environment (.venv)
 > 
 >**Hint**: It may require you to install pyside6 the package, if you do not already have it.
 
