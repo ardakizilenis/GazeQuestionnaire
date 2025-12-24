@@ -40,7 +40,7 @@ This project is intended for **HCI / Eye-Tracking research**, usability studies,
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.12 (only! not working with a higher Python Version because of dependency conflicts)
 - Webcam (or compatible video source)
 - Supported OS: Windows, macOS, Linux
 
