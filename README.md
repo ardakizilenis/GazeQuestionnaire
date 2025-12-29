@@ -47,50 +47,40 @@ This project is intended for **HCI / Eye-Tracking research**, usability studies,
 ---
 
 ## Quick Start
-1) Start the Questionnaire Builder
+
+#### 1) Install the Libraries
+
+MacOS:
+
+```bash
+  chmod +x setup_macos.sh
+./setup_macos.sh
+```
+
+Windows:
+
+```bash
+  .\setup_windows.ps1
+```
+
+#### 2) Start the Questionnaire Builder
 
 `
 python tools/questionnaire_builder.py
 `
-2) Click on the "Load" Button (Second Option in the Top Menu Bar) and navigate to `questionnaires/`
+#### 3) Click on the "Load" Button (Second Option in the Top Menu Bar) and navigate to `questionnaires/`
 
-3) Click the `questionnaire.json` file
+#### 4) Click the `questionnaire.json` file
 
-4) Edit or delete Questions in the Demo File
+#### 5) Edit or delete Questions in the Demo File
 
-5) When you are finished, simply save the questionnaire (Third Menu Option) in `questionnaires/questionnaire.json`.
+#### 6) When you are finished, simply save the questionnaire (Third Menu Option) in `questionnaires/questionnaire.json`.
 
-6) Run the questionnaire
+#### 7) Run the questionnaire
 
 `
 python main.py
 `
-
-
->**Troubleshooting I: Virtual Environment** 
->
-> If you are on Mac, it is required to configure your python-Interpreter and adding a virtual environment (.venv). 
-> If you have issues go to the project root and follow the following steps on the Terminal:
-> 1. `brew install python3.12@`
-> 2. `python3.12 -m venv env`
-> 3. `source env/bin/activate`
-> 4. `pip install --upgrade pip`
-> 5. `pip install pyside6`
-> 6. `pip install eyetrax`
-> 7. Set your Interpreter to `GazeQuestionnaire/env/bin/python`
-> 
->**Troubleshooting II: Outdated mediapipe** 
-> 
-> If you are on Mac and you get an Error like this: 
-> >AttributeError: module 'mediapipe' has no attribute 'solution'
-> 
-> the mediapipe package might be old or damaged. You have to uninstall and reinstall mediapipe to solve this issue
-> 
-> Follow these steps on the Terminal in the virtual environment:
-> 
-> 1. `pip uninstall -y mediapipe `
-> 2. `pip uninstall -y mediapipe-silicon mediapipe-rpi 2>/dev/null || true`
-> 3. `pip install mediapipe==0.10.14`
 
 
 Execution flow:
