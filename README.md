@@ -63,7 +63,7 @@ Windows:
   .\setup_windows.ps1
 ```
 
-#### 2) Start the Questionnaire Builder
+#### 2) Start the Questionnaire Builder (First Start may take longer than usual)
 
 `
 python tools/questionnaire_builder.py
@@ -76,7 +76,7 @@ python tools/questionnaire_builder.py
 
 #### 6) When you are finished, simply save the questionnaire (Third Menu Option) in `questionnaires/questionnaire.json`.
 
-#### 7) Run the questionnaire
+#### 7) Run the questionnaire (First Start may take longer than usual)
 
 `
 python main.py
