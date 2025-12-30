@@ -50,11 +50,12 @@ class TextInputWidget(GazeWidget):
 
     def __init__(
         self,
+        parent,
         question: str,
-        parent=None,
-        activation_mode: str = "dwell",
-        dwell_threshold_ms: int = 1200,
-        blink_threshold_ms: int = 250,
+        gazepoint_blocked: bool,
+        activation_mode: str,
+        dwell_threshold_ms: int,
+        blink_threshold_ms: int
     ):
         """
         Initialize the 3x3 grid text input widget.
@@ -81,6 +82,7 @@ class TextInputWidget(GazeWidget):
         super().__init__(parent)
 
         self.question = question
+        self.gazePointBlocked = gazepoint_blocked
         self.activation_mode = activation_mode
         self.dwell_threshold_ms = int(dwell_threshold_ms)
         self.blink_threshold_ms = int(blink_threshold_ms)
@@ -565,12 +567,13 @@ class TextInputWidget(GazeWidget):
         else:
             self.paint_letters_mode(painter)
 
-        gx, gy = self.map_gaze_to_widget()
-        if gx is not None and gy is not None:
-            painter.setBrush(QBrush(Qt.red))
-            painter.setPen(Qt.NoPen)
-            r = self.point_radius
-            painter.drawEllipse(int(gx) - r, int(gy) - r, 2 * r, 2 * r)
+        if not self.gazePointBlocked:
+            gx, gy = self.map_gaze_to_widget()
+            if gx is not None and gy is not None:
+                painter.setBrush(QBrush(Qt.red))
+                painter.setPen(Qt.NoPen)
+                r = self.point_radius
+                painter.drawEllipse(int(gx) - r, int(gy) - r, 2 * r, 2 * r)
 
     def paint_groups_mode(self, painter: QPainter) -> None:
         """

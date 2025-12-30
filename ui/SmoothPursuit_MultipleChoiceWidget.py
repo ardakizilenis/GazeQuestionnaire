@@ -228,8 +228,9 @@ class SmoothPursuitMultipleChoiceWidget(GazeWidget):
     def __init__(
         self,
         question: str,
-        labels: Optional[List[str]] = None,
-        parent=None,
+        gazepoint_blocked: bool,
+        labels: Optional[List[str]],
+        parent,
 
         # Pursuit params
         window_ms: int = 1250,
@@ -322,6 +323,7 @@ class SmoothPursuitMultipleChoiceWidget(GazeWidget):
         - Stability checks are sample-count based rather than time-based.
         """
         super().__init__(parent)
+        self.gazePointBlocked = gazepoint_blocked
         self.question = question
         if labels is None:
             self.labels = ["A", "B", "C", "D"]
@@ -1122,13 +1124,13 @@ class SmoothPursuitMultipleChoiceWidget(GazeWidget):
             # submit
             self._draw_submit(painter, submit_rect, submit_dot)
 
-            # gaze point
-            gx, gy = self.map_gaze_to_widget()
-            if gx is not None and gy is not None:
-                painter.setPen(Qt.NoPen)
-                painter.setBrush(Qt.red)
-                r = self.point_radius
-                painter.drawEllipse(int(gx) - r, int(gy) - r, 2 * r, 2 * r)
+            if not self.gazePointBlocked:
+                gx, gy = self.map_gaze_to_widget()
+                if gx is not None and gy is not None:
+                    painter.setPen(Qt.NoPen)
+                    painter.setBrush(Qt.red)
+                    r = self.point_radius
+                    painter.drawEllipse(int(gx) - r, int(gy) - r, 2 * r, 2 * r)
 
         finally:
             painter.end()

@@ -3,6 +3,7 @@
     "title": "Gaze Questionnaire",
     "version": 1
   },
+  "gazepoint_blocked": true,
   "items": [
     {
       "type": "info",

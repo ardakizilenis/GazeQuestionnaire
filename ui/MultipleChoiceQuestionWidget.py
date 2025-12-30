@@ -56,10 +56,11 @@ class MultipleChoiceQuestionWidget(GazeWidget):
     def __init__(
         self,
         question: str,
-        parent=None,
-        activation_mode: str = "blink",
-        dwell_threshold_ms: int = 1200,
-        blink_threshold_ms: int = 250,
+        parent,
+        gazepoint_blocked: bool,
+        activation_mode: str,
+        dwell_threshold_ms: int,
+        blink_threshold_ms: int,
         labels=None,
     ):
         """
@@ -87,11 +88,12 @@ class MultipleChoiceQuestionWidget(GazeWidget):
         """
         super().__init__(parent)
 
+        self.gazePointBlocked = gazepoint_blocked
         self.blink_fired = False
         self.question = question
         self.activation_mode = activation_mode
-        self.dwell_threshold_ms = int(dwell_threshold_ms)
-        self.blink_threshold_ms = int(blink_threshold_ms)
+        self.dwell_threshold_ms = dwell_threshold_ms
+        self.blink_threshold_ms = blink_threshold_ms
 
         if labels is None:
             self.labels = ["A", "B", "C", "D"]
@@ -537,9 +539,10 @@ class MultipleChoiceQuestionWidget(GazeWidget):
         painter.drawText(self.rect_submit, Qt.AlignCenter | Qt.TextWordWrap, "SUBMIT")
         self._draw_dwell_bar(painter, self.rect_submit, "submit")
 
-        gx, gy = self.map_gaze_to_widget()
-        if gx is not None and gy is not None:
-            painter.setBrush(QBrush(Qt.red))
-            painter.setPen(Qt.NoPen)
-            r = self.point_radius
-            painter.drawEllipse(int(gx) - r, int(gy) - r, 2 * r, 2 * r)
+        if not self.gazePointBlocked:
+            gx, gy = self.map_gaze_to_widget()
+            if gx is not None and gy is not None:
+                painter.setBrush(QBrush(Qt.red))
+                painter.setPen(Qt.NoPen)
+                r = self.point_radius
+                painter.drawEllipse(int(gx) - r, int(gy) - r, 2 * r, 2 * r)

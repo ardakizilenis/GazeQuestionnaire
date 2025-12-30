@@ -42,6 +42,9 @@ def load_questionnaire(path: str) -> List[Dict[str, Any]]:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     return data["items"]
 
+def load_gazepoint_blocked(path: str) -> bool:
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    return data["gazepoint_blocked"]
 
 def enqueue_from_json(window: MainWindow, items: List[Dict[str, Any]]) -> None:
     """
@@ -121,7 +124,13 @@ def main() -> None:
     smoother.tune(estimator, camera_index=0)
 
     app = QApplication(sys.argv)
-    window = MainWindow(estimator, smoother)
+    window = MainWindow(
+        estimator,
+        smoother,
+        parent=None,
+        gazepoint_blocked=load_gazepoint_blocked("questionnaires/questionnaire.json"),
+        dwell_threshold=1200,
+        blink_threshold=500)
 
     items = load_questionnaire("questionnaires/questionnaire.json")
     enqueue_from_json(window, items)

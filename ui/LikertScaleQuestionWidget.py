@@ -55,11 +55,12 @@ class LikertScaleQuestionWidget(GazeWidget):
 
     def __init__(
         self,
+        parent,
         question: str,
-        parent=None,
-        activation_mode: str = "blink",
-        dwell_threshold_ms: int = 1200,
-        blink_threshold_ms: int = 250,
+        gazepoint_blocked: bool,
+        activation_mode: str,
+        dwell_threshold_ms: int,
+        blink_threshold_ms: int,
         labels=None,
     ):
         """
@@ -87,11 +88,12 @@ class LikertScaleQuestionWidget(GazeWidget):
         """
         super().__init__(parent)
 
+        self.gazePointBlocked = gazepoint_blocked
         self.blink_fired = False
         self.question = question
         self.activation_mode = activation_mode
-        self.dwell_threshold_ms = int(dwell_threshold_ms)
-        self.blink_threshold_ms = int(blink_threshold_ms)
+        self.dwell_threshold_ms = dwell_threshold_ms
+        self.blink_threshold_ms = blink_threshold_ms
 
         if labels is None:
             self.labels = ["1", "2", "3", "4", "5"]
@@ -509,9 +511,10 @@ class LikertScaleQuestionWidget(GazeWidget):
 
             self.draw_dwell_bar(painter, rect, f"opt{i}")
 
-        gx, gy = self.map_gaze_to_widget()
-        if gx is not None and gy is not None:
-            painter.setBrush(QBrush(Qt.red))
-            painter.setPen(Qt.NoPen)
-            r = self.point_radius
-            painter.drawEllipse(int(gx) - r, int(gy) - r, 2 * r, 2 * r)
+        if not self.gazePointBlocked:
+            gx, gy = self.map_gaze_to_widget()
+            if gx is not None and gy is not None:
+                painter.setBrush(QBrush(Qt.red))
+                painter.setPen(Qt.NoPen)
+                r = self.point_radius
+                painter.drawEllipse(int(gx) - r, int(gy) - r, 2 * r, 2 * r)

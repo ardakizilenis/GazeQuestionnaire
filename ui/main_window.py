@@ -48,7 +48,7 @@ class MainWindow(QMainWindow):
     - gaze_questionnaire_clicks.csv: one row per click/toggle activation (timing + area label)
     """
 
-    def __init__(self, estimator, smoother, parent=None) -> None:
+    def __init__(self, estimator, smoother, gazepoint_blocked, dwell_threshold, blink_threshold, parent) -> None:
         """
         Initialize the main window and set up logging directories/files.
 
@@ -70,6 +70,10 @@ class MainWindow(QMainWindow):
 
         self.estimator = estimator
         self.smoother = smoother
+        self.gazepoint_blocked = gazepoint_blocked
+        self.blink_threshold = blink_threshold
+        self.dwell_threshold = dwell_threshold
+        self.parent = parent
 
         self.setWindowTitle("Gaze Questionnaire")
         self.showFullScreen()
@@ -325,39 +329,81 @@ class MainWindow(QMainWindow):
             return
 
         meta = self.question_queue[self.current_index]
-        qtype = meta["type"]
-        text = meta.get("text", "")
-        activation = meta.get("activation")
 
         logical_index: int | None = None
-        if qtype != "info":
+        if meta["type"] != "info":
             self.question_counter += 1
             logical_index = self.question_counter
 
-        match qtype:
+        match meta["type"]:
+
             case "info":
-                duration = meta.get("duration", 5)
-                widget = InfoWidget(text, duration_sec=duration)
+                widget = InfoWidget(
+                    text = meta.get("text", ""),
+                    duration_sec = meta.get("duration", 5),
+                    parent = self.parent,
+                    gazepoint_blocked = self.gazepoint_blocked,
+                )
             case "yesno":
-                widget = YesNoQuestionWidget(text, activation_mode=activation or "blink")
+                widget = YesNoQuestionWidget(
+                    question = meta.get("text", ""),
+                    activation_mode = meta.get("activation"),
+                    parent=self.parent,
+                    gazepoint_blocked = self.gazepoint_blocked,
+                    dwell_threshold_ms = self.dwell_threshold,
+                    blink_threshold_ms = self.blink_threshold
+                )
             case "mcq":
                 widget = MultipleChoiceQuestionWidget(
-                    text, activation_mode=activation or "blink", labels=meta.get("labels")
+                    question = meta.get("text", ""),
+                    activation_mode = meta.get("activation"),
+                    labels = meta.get("labels"),
+                    parent = self.parent,
+                    gazepoint_blocked = self.gazepoint_blocked,
+                    dwell_threshold_ms = self.dwell_threshold,
+                    blink_threshold_ms = self.blink_threshold
                 )
             case "likert":
                 widget = LikertScaleQuestionWidget(
-                    text, activation_mode=activation or "blink", labels=meta.get("labels")
+                    question = meta.get("text", ""),
+                    activation_mode = meta.get("activation"),
+                    labels = meta.get("labels"),
+                    parent = self.parent,
+                    gazepoint_blocked=self.gazepoint_blocked,
+                    dwell_threshold_ms=self.dwell_threshold,
+                    blink_threshold_ms=self.blink_threshold
                 )
             case "textgrid":
-                widget = TextInputWidget(text, activation_mode=activation or "dwell")
+                widget = TextInputWidget(
+                    question = meta.get("text", ""),
+                    activation_mode = meta.get("activation"),
+                    parent = self.parent,
+                    gazepoint_blocked = self.gazepoint_blocked,
+                    dwell_threshold_ms = self.dwell_threshold,
+                    blink_threshold_ms = self.blink_threshold
+                )
             case "sp_yesno":
-                widget = SmoothPursuitYesNoWidget(text)
+                widget = SmoothPursuitYesNoWidget(
+                    meta.get("text", ""),
+                    parent = self.parent,
+                    gazepoint_blocked = self.gazepoint_blocked
+                )
             case "sp_mcq":
-                widget = SmoothPursuitMultipleChoiceWidget(text, labels=meta.get("labels"))
+                widget = SmoothPursuitMultipleChoiceWidget(
+                    meta.get("text", ""),
+                    parent = self.parent,
+                    labels=meta.get("labels"),
+                    gazepoint_blocked=self.gazepoint_blocked
+                )
             case "sp_likert":
-                widget = SmoothPursuitLikertScaleWidget(text, labels=meta.get("labels"))
-            case _:
-                print("Question Type unknown:", qtype)
+                widget = SmoothPursuitLikertScaleWidget(
+                    meta.get("text", ""),
+                    parent = self.parent,
+                    labels=meta.get("labels"),
+                    gazepoint_blocked=self.gazepoint_blocked
+                )
+            case _ :
+                print("Question Type unknown:", meta["type"])
                 self.show_next_question()
                 return
 
@@ -379,9 +425,9 @@ class MainWindow(QMainWindow):
         self.last_click_time = self.question_start_time
         self.current_qmeta = {
             "index": logical_index,
-            "type": qtype,
-            "text": text,
-            "activation": activation,
+            "type": meta["type"],
+            "text": meta.get("text", ""),
+            "activation": meta.get("activation", ""),
         }
 
     def on_widget_clicked(self, toggle_index, toggled_area):

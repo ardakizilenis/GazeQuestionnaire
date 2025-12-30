@@ -26,7 +26,13 @@ class InfoWidget(GazeWidget):
 
     submitted = Signal(object)
 
-    def __init__(self, text: str, duration_sec: int, parent=None):
+    def __init__(
+            self,
+            parent,
+            gazepoint_blocked: bool,
+            text: str,
+            duration_sec: int,
+    ):
         """
         Initialize the info widget.
 
@@ -46,6 +52,7 @@ class InfoWidget(GazeWidget):
         """
         super().__init__(parent)
 
+        self.gazePointBlocked = gazepoint_blocked
         self.text = text
         self.duration_ms = max(1, int(duration_sec * 1000))
 
@@ -135,10 +142,12 @@ class InfoWidget(GazeWidget):
         painter.setBrush(QBrush(Qt.white))
         painter.drawRect(bar_margin, bar_y, fill_width, bar_height)
 
-        gx, gy = self.map_gaze_to_widget()
-        if gx is not None and gy is not None:
-            painter.setRenderHint(QPainter.Antialiasing, True)
-            painter.setBrush(QBrush(Qt.red))
-            painter.setPen(Qt.NoPen)
-            r = self.point_radius
-            painter.drawEllipse(int(gx) - r, int(gy) - r, 2 * r, 2 * r)
+        if not self.gazePointBlocked:
+            gx, gy = self.map_gaze_to_widget()
+            if gx is not None and gy is not None:
+                painter.setRenderHint(QPainter.Antialiasing, True)
+                painter.setBrush(QBrush(Qt.red))
+                painter.setPen(Qt.NoPen)
+                r = self.point_radius
+                painter.drawEllipse(int(gx) - r, int(gy) - r, 2 * r, 2 * r)
+

@@ -171,23 +171,35 @@ class SmoothPursuitLikertScaleWidget(GazeWidget):
     def __init__(
         self,
         question: str,
-        labels: Optional[List[str]] = None,
-        parent=None,
+        gazepoint_blocked: bool,
+        labels: Optional[List[str]],
+        parent,
+
+        # Pursuit Params
         window_ms: int = 1250,
         corr_threshold: float = 0.73,
         toggle_stable_samples: int = 18,
         submit_stable_samples: int = 20,
         use_lag_compensation: bool = True,
         max_lag_ms: int = 180,
+
+        # Motion Parameters
         option_frequency_hz: float = 0.25,
         submit_frequency_hz: float = 0.28,
+
+        # Visual Parameters
         orbit_scale: float = 0.34,
+
+        # Proximity Mixing
         proximity_sigma_px: float = 220.0,
         proximity_weight: float = 0.15,
+
+        # Cooldowns
         toggle_cooldown_ms: int = 1300,
         submit_cooldown_ms: int = 1400,
-        allow_empty_submit: bool = False,
-        layout_shift_down_px: int = 44,
+
+        # Allow Empty
+        allow_empty_submit: bool = False
     ):
         """
         Initialize a smooth pursuit Likert (5-point) widget.
@@ -244,6 +256,7 @@ class SmoothPursuitLikertScaleWidget(GazeWidget):
         """
         super().__init__(parent)
 
+        self.gazePointBlocked = gazepoint_blocked
         self.question = question
 
         if labels is None:
@@ -277,8 +290,8 @@ class SmoothPursuitLikertScaleWidget(GazeWidget):
         self.submit_cooldown_ms = int(submit_cooldown_ms)
         self.allow_empty_submit = bool(allow_empty_submit)
 
-        base_shift = int(self.height() * 0.06) if self.height() else int(layout_shift_down_px)
-        self.layout_shift_down_px = max(int(layout_shift_down_px), base_shift)
+        base_shift = int(self.height() * 0.06) if self.height() else int(44)
+        self.layout_shift_down_px = max(int(44), base_shift)
 
         self._t0 = time.monotonic()
 
@@ -974,12 +987,13 @@ class SmoothPursuitLikertScaleWidget(GazeWidget):
 
             self._draw_submit(painter, submit_rect, submit_dot)
 
-            gx, gy = self.map_gaze_to_widget()
-            if gx is not None and gy is not None:
-                painter.setPen(Qt.NoPen)
-                painter.setBrush(Qt.red)
-                r = self.point_radius
-                painter.drawEllipse(int(gx) - r, int(gy) - r, 2 * r, 2 * r)
+            if not self.gazePointBlocked:
+                gx, gy = self.map_gaze_to_widget()
+                if gx is not None and gy is not None:
+                    painter.setPen(Qt.NoPen)
+                    painter.setBrush(Qt.red)
+                    r = self.point_radius
+                    painter.drawEllipse(int(gx) - r, int(gy) - r, 2 * r, 2 * r)
 
         finally:
             painter.end()

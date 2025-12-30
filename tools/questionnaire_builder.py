@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QListWidget, QListWidgetItem, QTextEdit, QComboBox, QSpinBox,
     QFileDialog, QMessageBox, QFormLayout, QDialog, QDialogButtonBox,
-    QLabel, QToolBar, QStyle, QStyledItemDelegate
+    QLabel, QToolBar, QStyle, QStyledItemDelegate, QCheckBox
 )
 
 
@@ -367,6 +367,7 @@ class BuilderMainWindow(QMainWindow):
 
         self.items: list[dict] = []
         self.current_path: Path | None = None
+        self.gazepoint_blocked: bool = False
 
         self.theme = "dark"  # default
         apply_theme(QApplication.instance(), self.theme)
@@ -402,17 +403,24 @@ class BuilderMainWindow(QMainWindow):
         self.icon_moon = self.style().standardIcon(QStyle.SP_DialogNoButton)
         self.act_theme = QAction(self.icon_sun, "Light mode", self)
         self.act_theme.setCheckable(True)
-        self.act_theme.setChecked(True)  # dark by default
+        self.act_theme.setChecked(False)  # light by default
+        self.cb_gazepoint = QCheckBox("Block Gazepoint?")
+        self.cb_gazepoint.setChecked(self.gazepoint_blocked)
+        self.cb_gazepoint.toggled.connect(self.on_gazepoint_blocked_changed)
 
         tb.addAction(self.act_new)
         tb.addAction(self.act_open)
         tb.addAction(self.act_save)
         tb.addSeparator()
         tb.addAction(self.act_add)
+
         tb.addAction(self.act_edit)
         tb.addAction(self.act_del)
         tb.addSeparator()
         tb.addAction(self.act_theme)
+        tb.addWidget(self.cb_gazepoint)
+
+
 
         self.act_new.triggered.connect(self.new_json)
         self.act_open.triggered.connect(self.load_json)
@@ -472,7 +480,17 @@ class BuilderMainWindow(QMainWindow):
 
     # ---------- core ----------
     def doc(self) -> dict:
-        return {"meta": {"title": "Gaze Questionnaire", "version": 1}, "items": self.items}
+        return \
+            {
+                "meta":
+                    {
+                        "title": "Gaze Questionnaire",
+                        "version": 1
+                    },
+                "gazepoint_blocked": self.gazepoint_blocked,
+                "items":
+                    self.items
+            }
 
     @staticmethod
     def format_item_label(it: dict, idx: int) -> str:
@@ -513,6 +531,10 @@ class BuilderMainWindow(QMainWindow):
                 if self.list_widget.item(i).data(Qt.UserRole) is selected_obj:
                     self.list_widget.setCurrentRow(i)
                     break
+        if hasattr(self, "cb_gazepoint"):
+            self.cb_gazepoint.blockSignals(True)
+            self.cb_gazepoint.setChecked(bool(self.gazepoint_blocked))
+            self.cb_gazepoint.blockSignals(False)
 
         self.json_preview.setPlainText(pretty_json(self.doc()))
 
@@ -527,6 +549,12 @@ class BuilderMainWindow(QMainWindow):
         self.items = new_items
         self.refresh()
         self.statusBar().showMessage("Reordered", 1200)
+
+    def on_gazepoint_blocked_changed(self, checked: bool):
+        self.gazepoint_blocked = bool(checked)
+        self.refresh()
+        self.save_json()
+        self.statusBar().showMessage(f"Blocked Gazepoint: {self.gazepoint_blocked}", 1500)
 
     # ---------- actions ----------
     def add_item(self):
@@ -561,6 +589,7 @@ class BuilderMainWindow(QMainWindow):
 
     def new_json(self):
         self.items = []
+        self.gazepoint_blocked = False
         self.current_path = None
         self.refresh()
         self.statusBar().showMessage("New document", 1500)
@@ -597,6 +626,10 @@ class BuilderMainWindow(QMainWindow):
         if not isinstance(items, list):
             QMessageBox.warning(self, "Invalid JSON", "Missing 'items' list.")
             return
+        gp = data.get("gazepoint_blocked", False)
+        if isinstance(gp, str):
+            gp = gp.strip().lower() in ("true", "1", "yes")
+        self.gazepoint_blocked = bool(gp)
 
         self.items = items
         self.current_path = Path(path)
