@@ -5,3 +5,4 @@ notes.txt
 .DS_Store
 # JetBrains / PyCharm
 .idea/
+/data/
