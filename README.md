@@ -68,13 +68,13 @@ Windows:
 `
 python tools/questionnaire_builder.py
 `
-#### 3) Click on the "Load" Button (Second Option in the Top Menu Bar) and navigate to `questionnaires/`
+#### 3) Click on the "Load" Button (Second Option in the Top Menu Bar) and navigate to the project root
 
 #### 4) Click the `questionnaire.json` file
 
 #### 5) Edit or delete Questions in the Demo File
 
-#### 6) When you are finished, simply save the questionnaire (Third Menu Option) in `questionnaires/questionnaire.json`.
+#### 6) When you are finished, simply close the questionnaire. Your changes will automatically be saved in `questionnaire.json`.
 
 #### 7) Run the questionnaire (First Start may take longer than usual)
 
