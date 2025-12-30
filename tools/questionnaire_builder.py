@@ -369,7 +369,7 @@ class BuilderMainWindow(QMainWindow):
         self.current_path: Path | None = None
         self.gazepoint_blocked: bool = False
 
-        self.theme = "dark"  # default
+        self.theme = "light"  # default
         apply_theme(QApplication.instance(), self.theme)
 
         self._build_toolbar()
@@ -401,7 +401,7 @@ class BuilderMainWindow(QMainWindow):
         # Theme toggle
         self.icon_sun = self.style().standardIcon(QStyle.SP_DialogYesButton)
         self.icon_moon = self.style().standardIcon(QStyle.SP_DialogNoButton)
-        self.act_theme = QAction(self.icon_sun, "Light mode", self)
+        self.act_theme = QAction(self.icon_moon, "Dark mode", self)
         self.act_theme.setCheckable(True)
         self.act_theme.setChecked(False)  # light by default
         self.cb_gazepoint = QCheckBox("Block Gazepoint?")
