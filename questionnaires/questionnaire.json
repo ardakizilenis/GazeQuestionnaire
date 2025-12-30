@@ -3,11 +3,11 @@
     "title": "Gaze Questionnaire",
     "version": 1
   },
-  "gazepoint_blocked": true,
+  "gazepoint_blocked": false,
   "items": [
     {
       "type": "info",
-      "text": "Welcome to Gaze Questionnaire",
+      "text": "Welcome to Gaze Questionnaire!",
       "duration": 5
     },
     {
