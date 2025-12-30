@@ -1,4 +1,4 @@
-# Gaze Questionnaire
+# Gaze Questionnaire 1.1
 
 A research-oriented framework for **gaze-based questionnaires** using **eye tracking**, **blink/dwell activation**, and **smooth pursuit interaction**.  
 The system enables hands-free answering of questionnaires and logs fine-grained interaction data for later analysis.
@@ -35,6 +35,13 @@ This project is intended for **HCI / Eye-Tracking research**, usability studies,
   - JSON export/import
 - **Fullscreen experimental UI**
 - **Kalman-smoothed gaze signal**
+
+---
+
+### ++ New Features in 1.1 ++
+
+- Files will be automatically saved. No need to manually save anymore
+- Tick Box in the questionnaire Builder to disable the gaze point 
 
 ---
 
