@@ -130,7 +130,8 @@ def main() -> None:
         parent=None,
         gazepoint_blocked=load_gazepoint_blocked("questionnaire.json"),
         dwell_threshold=1200,
-        blink_threshold=500)
+        blink_threshold=500
+    )
 
     items = load_questionnaire("questionnaire.json")
     enqueue_from_json(window, items)

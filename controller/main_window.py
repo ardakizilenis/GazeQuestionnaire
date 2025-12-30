@@ -11,14 +11,14 @@ from typing import Any, Dict, List, Optional
 from PySide6.QtWidgets import QMainWindow, QApplication
 
 from gaze.eyetracker_worker import EyeTrackerWorker
-from widgets.InfoWidget import InfoWidget
-from widgets.LikertScaleQuestionWidget import LikertScaleQuestionWidget
-from widgets.MultipleChoiceQuestionWidget import MultipleChoiceQuestionWidget
-from widgets.SmoothPursuit_LikertScaleWidget import SmoothPursuitLikertScaleWidget
-from widgets.SmoothPursuit_MultipleChoiceWidget import SmoothPursuitMultipleChoiceWidget
-from widgets.SmoothPursuit_YesNoWidget import SmoothPursuitYesNoWidget
-from widgets.TextInputWidget import TextInputWidget
-from widgets.YesNoQuestionWidget import YesNoQuestionWidget
+from widgets.question_types.InfoWidget import InfoWidget
+from widgets.question_types.LikertScaleQuestionWidget import LikertScaleQuestionWidget
+from widgets.question_types.MultipleChoiceQuestionWidget import MultipleChoiceQuestionWidget
+from widgets.question_types.SmoothPursuit_LikertScaleWidget import SmoothPursuitLikertScaleWidget
+from widgets.question_types.SmoothPursuit_MultipleChoiceWidget import SmoothPursuitMultipleChoiceWidget
+from widgets.question_types.SmoothPursuit_YesNoWidget import SmoothPursuitYesNoWidget
+from widgets.question_types.TextInputWidget import TextInputWidget
+from widgets.question_types.YesNoQuestionWidget import YesNoQuestionWidget
 
 
 class MainWindow(QMainWindow):
