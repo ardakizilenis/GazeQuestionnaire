@@ -1,11 +1,11 @@
-# ui/InfoWidget.py
+# widgets/InfoWidget.py
 
 from __future__ import annotations
 
 from PySide6.QtCore import QElapsedTimer, QTimer, Qt, Signal
 from PySide6.QtGui import QPainter, QBrush
 
-from ui.gaze_widget import GazeWidget
+from widgets.gaze_widget import GazeWidget
 
 
 class InfoWidget(GazeWidget):

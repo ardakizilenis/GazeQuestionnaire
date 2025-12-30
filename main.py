@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QApplication
 from eyetrax import GazeEstimator, run_9_point_calibration
 from eyetrax.filters import KalmanSmoother, make_kalman
 
-from ui.main_window import MainWindow
+from controller.main_window import MainWindow
 
 
 def load_questionnaire(path: str) -> List[Dict[str, Any]]:
@@ -128,11 +128,11 @@ def main() -> None:
         estimator,
         smoother,
         parent=None,
-        gazepoint_blocked=load_gazepoint_blocked("questionnaires/questionnaire.json"),
+        gazepoint_blocked=load_gazepoint_blocked("questionnaire.json"),
         dwell_threshold=1200,
         blink_threshold=500)
 
-    items = load_questionnaire("questionnaires/questionnaire.json")
+    items = load_questionnaire("questionnaire.json")
     enqueue_from_json(window, items)
 
     window.start_questionnaire()

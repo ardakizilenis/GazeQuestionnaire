@@ -1,4 +1,4 @@
-# ui/TextInputWidget.py
+# widgets/TextInputWidget.py
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from PySide6.QtCore import QElapsedTimer, QRect, Slot, Qt, Signal
 from PySide6.QtGui import QPainter, QBrush
 from PySide6.QtWidgets import QApplication
 
-from ui.gaze_widget import GazeWidget
+from widgets.gaze_widget import GazeWidget
 
 
 class TextInputWidget(GazeWidget):

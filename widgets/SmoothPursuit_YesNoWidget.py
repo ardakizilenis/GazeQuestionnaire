@@ -1,4 +1,4 @@
-# ui/SmoothPursuit_YesNoWidget.py
+# widgets/SmoothPursuit_YesNoWidget.py
 # Smooth Pursuit Yes-No-Widget
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from PySide6.QtCore import Qt, QRect, QTimer, Slot, Signal, QPoint
 from PySide6.QtGui import QPainter, QPen
 from PySide6.QtWidgets import QApplication
 
-from ui.gaze_widget import GazeWidget
+from widgets.gaze_widget import GazeWidget
 
 
 def pearson_corr(a: np.ndarray, b: np.ndarray) -> float:

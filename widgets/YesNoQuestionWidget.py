@@ -1,4 +1,4 @@
-# ui/LikertScaleQuestionWidget.py
+# widgets/YesNoQuestionWidget.py
 
 from __future__ import annotations
 
@@ -6,48 +6,40 @@ from PySide6.QtCore import QElapsedTimer, QRect, Slot, Qt, Signal
 from PySide6.QtGui import QPainter, QBrush
 from PySide6.QtWidgets import QApplication
 
-from ui.gaze_widget import GazeWidget
+from widgets.gaze_widget import GazeWidget
 
 
-class LikertScaleQuestionWidget(GazeWidget):
+class YesNoQuestionWidget(GazeWidget):
     """
-    Likert scale question widget with 5 vertically stacked options and a submit area.
+    Yes/No question widget with two answer regions and a submit region.
 
-    Layout
-    ------
-    - Left side (≈45% width): five options (opt0..opt4) stacked vertically.
-    - Right side (≈55% width):
-        - top (≈75% height): REST/question area (no activation)
-        - bottom (≈25% height): SUBMIT area
-
-    Interaction
-    -----------
+    Interaction Modes
+    -----------------
     activation_mode:
-      - "blink": activation is triggered by holding a blink for at least `blink_threshold_ms`
-      - "dwell": activation is triggered by dwelling in an area for `dwell_threshold_ms`
-                (with an on-screen dwell progress bar after a grace period)
+      - "blink": activate by holding a blink for at least `blink_threshold_ms`
+      - "dwell": activate by dwelling inside an area for `dwell_threshold_ms`
 
-    Selection
-    ---------
-    - Single-select: `selected_index` is 0..4 or None.
-    - Selecting an option sets `selected_index`.
-    - SUBMIT emits the selected label (string). If nothing is selected, submit does nothing.
+    Regions
+    -------
+    - YES: left half (top area)
+    - NO: right half (top area)
+    - REST: centered question box (ignored for activation)
+    - SUBMIT: bottom band (full width)
 
     Signals
     -------
     submitted(object):
-        Emits the selected label (str) on submission.
+        Emits the selected answer string ("yes" or "no") on submission.
     clicked(int, str):
-        Emits a click index and a label for logging:
-        - option activations emit the option label (e.g., "3")
-        - submit emits "submit"
+        Emits a click index and an area identifier ("yes", "no", "submit")
+        for logging/analytics.
 
     Logging Fields (expected by MainWindow)
     --------------------------------------
-    - log_toggles: counts selection changes
-    - log_resets: always 0
-    - log_backspaces: always 0
-    - log_extra: configuration string (mode, thresholds, labels)
+    - log_toggles: number of selection changes between yes/no
+    - log_resets: always 0 (no resets here)
+    - log_backspaces: always 0 (no backspaces here)
+    - log_extra: configuration string
     """
 
     submitted = Signal(object)
@@ -61,15 +53,14 @@ class LikertScaleQuestionWidget(GazeWidget):
         activation_mode: str,
         dwell_threshold_ms: int,
         blink_threshold_ms: int,
-        labels=None,
     ):
         """
-        Initialize the Likert scale widget.
+        Initialize the widget.
 
         Parameters
         ----------
         question : str
-            Question text displayed in the right-side REST area.
+            The question text displayed in the center box.
         parent : QWidget, optional
             Parent Qt widget.
         activation_mode : str, default="blink"
@@ -78,61 +69,45 @@ class LikertScaleQuestionWidget(GazeWidget):
             Dwell duration (ms) required to activate an area in dwell mode.
         blink_threshold_ms : int, default=250
             Blink duration (ms) required to activate at the current gaze point in blink mode.
-        labels : list[str] | None, optional
-            Exactly five labels (strings). Defaults to ["1","2","3","4","5"].
 
         Notes
         -----
-        - Option highlight colors are fixed from red→green and only used as backgrounds
-          when an option is selected.
+        - Selection is stored in `self.selection` as "yes", "no", or None.
+        - In dwell mode, a grace period is applied before progress starts filling.
         """
         super().__init__(parent)
 
-        self.gazePointBlocked = gazepoint_blocked
-        self.blink_fired = False
         self.question = question
+        self.gazePointBlocked = gazepoint_blocked
         self.activation_mode = activation_mode
-        self.dwell_threshold_ms = dwell_threshold_ms
-        self.blink_threshold_ms = blink_threshold_ms
+        self.dwell_threshold_ms = int(dwell_threshold_ms)
+        self.blink_threshold_ms = int(blink_threshold_ms)
 
-        if labels is None:
-            self.labels = ["1", "2", "3", "4", "5"]
-        else:
-            assert len(labels) == 5, "LikertScaleQuestionWidget requires exactly 5 labels."
-            self.labels = [str(l) for l in labels]
-
-        self.colors = [
-            Qt.darkRed,
-            Qt.red,
-            Qt.gray,
-            Qt.darkGreen,
-            Qt.green,
-        ]
-
-        self.selected_index: int | None = None
+        self.selection: str | None = None
         self.click_index: int = 0
 
         self.is_blinking = False
+        self.blink_fired = False
         self.blink_timer = QElapsedTimer()
 
-        self.dwell_timer = QElapsedTimer()
         self.dwell_grace_ms = 700
+        self.dwell_timer = QElapsedTimer()
         self.dwell_area: str | None = None
         self.dwell_progress: float = 0.0
 
-        self.question_rect = QRect()
+        self.yes_rect = QRect()
+        self.no_rect = QRect()
         self.submit_rect = QRect()
-        self.option_rects: list[QRect] = [QRect() for _ in range(5)]
+        self.question_rect = QRect()
 
         self.log_toggles = 0
         self.log_resets = 0
         self.log_backspaces = 0
         self.log_extra = (
-            f"likert;"
+            f"yesno;"
             f"mode={self.activation_mode};"
             f"dwell_ms={self.dwell_threshold_ms};"
-            f"blink_ms={self.blink_threshold_ms};"
-            f"labels={self.labels}"
+            f"blink_ms={self.blink_threshold_ms}"
         )
 
     @Slot(float, float)
@@ -153,8 +128,8 @@ class LikertScaleQuestionWidget(GazeWidget):
 
         Notes
         -----
-        - Always forwards gaze to `GazeWidget`.
-        - In dwell mode, maps gaze to widget coordinates and updates dwell logic.
+        - Always forwards the gaze to the base `GazeWidget`.
+        - In dwell mode, maps gaze to widget coordinates and updates dwell progress.
         """
         super().set_gaze(x, y)
 
@@ -180,8 +155,8 @@ class LikertScaleQuestionWidget(GazeWidget):
         Notes
         -----
         - Only active when `activation_mode == "blink"`.
-        - A single activation is triggered once per blink when duration reaches
-          `blink_threshold_ms`.
+        - A blink triggers activation once it lasts at least `blink_threshold_ms`.
+        - Uses `blink_fired` to avoid repeated activations during the same blink.
         """
         if self.activation_mode != "blink":
             return
@@ -203,14 +178,14 @@ class LikertScaleQuestionWidget(GazeWidget):
             self.is_blinking = False
             self.blink_fired = False
 
-    def set_selection(self, index: int):
+    def set_selection(self, sel: str):
         """
-        Select one of the five Likert options.
+        Set the current selection to "yes" or "no".
 
         Parameters
         ----------
-        index : int
-            Option index in [0, 4].
+        sel : str
+            Selection string; must be "yes" or "no".
 
         Returns
         -------
@@ -219,21 +194,21 @@ class LikertScaleQuestionWidget(GazeWidget):
         Notes
         -----
         - Increments `log_toggles` only when the selection changes.
-        - Emits a beep and schedules a repaint.
+        - Emits a beep and triggers repaint.
         """
-        if not (0 <= index < len(self.labels)):
+        if sel not in ("yes", "no"):
             return
 
-        if self.selected_index != index:
+        if self.selection != sel:
             self.log_toggles += 1
 
-        self.selected_index = index
+        self.selection = sel
         QApplication.beep()
         self.update()
 
     def activate_submit(self):
         """
-        Submit the currently selected option.
+        Submit the current selection.
 
         Returns
         -------
@@ -241,15 +216,14 @@ class LikertScaleQuestionWidget(GazeWidget):
 
         Notes
         -----
-        - If no option is selected, does nothing.
-        - Emits `submitted` with the selected label (string) and beeps.
+        - If no selection is made, does nothing.
+        - Emits `submitted` with "yes" or "no" and beeps.
         """
-        if self.selected_index is None:
+        if self.selection is None:
             return
 
         QApplication.beep()
-        value = self.labels[self.selected_index]
-        self.submitted.emit(value)
+        self.submitted.emit(self.selection)
         self.update()
 
     def area_for_point(self, x: int, y: int) -> str | None:
@@ -266,31 +240,26 @@ class LikertScaleQuestionWidget(GazeWidget):
         Returns
         -------
         str | None
-            One of:
-              - "submit"
-              - "rest"
-              - "opt0".."opt4"
-            or None if outside all regions.
+            One of: "rest", "yes", "no", "submit", or None if outside all areas.
         """
-        if self.submit_rect.contains(x, y):
-            return "submit"
         if self.question_rect.contains(x, y):
             return "rest"
-
-        for i, rect in enumerate(self.option_rects):
-            if rect.contains(x, y):
-                return f"opt{i}"
-
+        if self.yes_rect.contains(x, y):
+            return "yes"
+        if self.no_rect.contains(x, y):
+            return "no"
+        if self.submit_rect.contains(x, y):
+            return "submit"
         return None
 
     def handle_activation_for_area(self, area: str | None):
         """
-        Handle an activation event for a given area identifier.
+        Handle an activation event for a specific area.
 
         Parameters
         ----------
         area : str | None
-            Area id returned by `area_for_point`.
+            Must be one of "yes", "no", "submit". Other values are ignored.
 
         Returns
         -------
@@ -298,29 +267,20 @@ class LikertScaleQuestionWidget(GazeWidget):
 
         Notes
         -----
-        - "rest" and None are ignored.
-        - Option areas emit the option label via `clicked` then set the selection.
-        - "submit" emits "submit" via `clicked` then triggers submission.
+        - Emits `clicked` for valid areas.
+        - "yes"/"no" update selection, "submit" emits `submitted`.
         """
-        if area is None or area == "rest":
+        if area not in ("yes", "no", "submit"):
             return
 
-        if area.startswith("opt"):
-            try:
-                idx = int(area[3:])
-            except ValueError:
-                return
-            if not (0 <= idx < len(self.labels)):
-                return
+        self.click_index += 1
+        self.clicked.emit(self.click_index, area)
 
-            self.click_index += 1
-            self.clicked.emit(self.click_index, str(self.labels[idx]))
-            self.set_selection(idx)
-            return
-
-        if area == "submit":
-            self.click_index += 1
-            self.clicked.emit(self.click_index, "submit")
+        if area == "yes":
+            self.set_selection("yes")
+        elif area == "no":
+            self.set_selection("no")
+        else:
             self.activate_submit()
 
     def handle_activation_by_point(self):
@@ -333,8 +293,8 @@ class LikertScaleQuestionWidget(GazeWidget):
 
         Notes
         -----
-        - Maps gaze to widget coordinates, resolves the area under gaze,
-          then dispatches to `handle_activation_for_area`.
+        - Maps gaze to widget coordinates.
+        - Resolves the area under gaze and dispatches to `handle_activation_for_area`.
         """
         x, y = self.map_gaze_to_widget()
         if x is None or y is None:
@@ -359,10 +319,10 @@ class LikertScaleQuestionWidget(GazeWidget):
 
         Notes
         -----
-        - Dwell is ignored for None/"rest".
-        - When entering a new actionable area, dwell timer restarts.
-        - After a grace period, `dwell_progress` fills linearly up to 1.0.
-        - When `dwell_threshold_ms` is reached, triggers activation and resets progress.
+        - Dwell is ignored in "rest" area and outside all areas.
+        - If the dwell area changes, progress resets and timer restarts.
+        - A grace period (`dwell_grace_ms`) is applied before progress fills.
+        - On reaching `dwell_threshold_ms`, triggers activation and restarts the timer.
         """
         area = self.area_for_point(x, y)
 
@@ -400,16 +360,16 @@ class LikertScaleQuestionWidget(GazeWidget):
 
     def draw_dwell_bar(self, painter: QPainter, rect: QRect, area_name: str):
         """
-        Draw a dwell progress bar along the bottom edge of an area rectangle.
+        Draw a dwell progress bar at the bottom of a given rectangle.
 
         Parameters
         ----------
         painter : QPainter
             Active painter used for drawing.
         rect : QRect
-            The rectangle of the area.
+            Target rectangle where the progress bar is drawn.
         area_name : str
-            The dwell area identifier to match against `self.dwell_area`.
+            Area identifier for which to draw the bar ("yes", "no", "submit").
 
         Returns
         -------
@@ -417,8 +377,8 @@ class LikertScaleQuestionWidget(GazeWidget):
 
         Notes
         -----
-        - Only draws in dwell mode and only for the currently active dwell area.
-        - The bar width is proportional to `dwell_progress`.
+        - Only draws in dwell mode, and only for the currently active dwell area.
+        - Bar width is proportional to `dwell_progress`.
         """
         if self.activation_mode != "dwell":
             return
@@ -427,10 +387,10 @@ class LikertScaleQuestionWidget(GazeWidget):
         if self.dwell_progress <= 0.0:
             return
 
-        bar_height = max(4, rect.height() // 15)
+        bar_height = max(4, rect.height() // 12)
         bar_width = int(rect.width() * self.dwell_progress)
-        bar_rect = QRect(rect.left(), rect.bottom() - bar_height + 1, bar_width, bar_height)
 
+        bar_rect = QRect(rect.left(), rect.bottom() - bar_height + 1, bar_width, bar_height)
         painter.setBrush(QBrush(Qt.white))
         painter.setPen(Qt.NoPen)
         painter.drawRect(bar_rect)
@@ -450,66 +410,74 @@ class LikertScaleQuestionWidget(GazeWidget):
 
         Notes
         -----
-        - Computes all region rectangles from the current widget size.
-        - Draws the question on the right and options on the left.
-        - Highlights the selected option with a colored background.
-        - Draws dwell bars in dwell mode.
-        - Draws the gaze point as a red dot.
+        - Splits the widget into a top region (YES/NO + question box) and a bottom SUBMIT region.
+        - Draws selection highlighting for YES/NO areas.
+        - Renders dwell progress bars in dwell mode.
+        - Draws the current gaze point as a red dot.
         """
         painter = QPainter(self)
         painter.fillRect(self.rect(), Qt.black)
         painter.setRenderHint(QPainter.Antialiasing, True)
-        painter.setPen(Qt.white)
 
-        w, h = self.width(), self.height()
+        w = self.width()
+        h = self.height()
 
-        options_w = int(w * 0.45)
-        right_w = w - options_w
+        submit_h = int(h * 0.20)
+        top_h = h - submit_h
 
-        question_h = int(h * 0.75)
-        submit_h = h - question_h
+        self.yes_rect = QRect(0, 0, w // 2, top_h)
+        self.no_rect = QRect(w // 2, 0, w - w // 2, top_h)
 
-        self.question_rect = QRect(options_w, 0, right_w, question_h)
-        self.submit_rect = QRect(options_w, question_h, right_w, submit_h)
+        square_side = int(top_h * 0.4)
+        if square_side < 80:
+            square_side = 80
+        qx = (w - square_side) // 2
+        qy = (top_h - square_side) // 2
+        self.question_rect = QRect(qx, qy, square_side, square_side)
 
-        opt_h = h // 5
-        for i in range(5):
-            y = i * opt_h
-            height = h - y if i == 4 else opt_h
-            self.option_rects[i] = QRect(0, y, options_w, height)
+        self.submit_rect = QRect(0, top_h, w, submit_h)
 
         font = painter.font()
-        font.setPointSize(max(10, int(h * 0.035)))
+        font.setPointSize(15)
         painter.setFont(font)
 
-        painter.drawRect(self.question_rect)
-        question_inner = self.question_rect.adjusted(15, 15, -15, -15)
-        painter.drawText(question_inner, Qt.AlignCenter | Qt.TextWordWrap, self.question)
+        painter.setPen(Qt.white)
 
+        if self.selection == "yes":
+            painter.setBrush(QBrush(Qt.darkGreen))
+            painter.drawRect(self.yes_rect)
+            painter.setBrush(Qt.NoBrush)
+            painter.drawRect(self.no_rect)
+        elif self.selection == "no":
+            painter.setBrush(QBrush(Qt.darkRed))
+            painter.drawRect(self.no_rect)
+            painter.setBrush(Qt.NoBrush)
+            painter.drawRect(self.yes_rect)
+        else:
+            painter.setBrush(Qt.NoBrush)
+            painter.drawRect(self.yes_rect)
+            painter.drawRect(self.no_rect)
+
+        painter.drawText(self.yes_rect, Qt.AlignCenter, "YES")
+        painter.drawText(self.no_rect, Qt.AlignCenter, "NO")
+
+        self.draw_dwell_bar(painter, self.yes_rect, "yes")
+        self.draw_dwell_bar(painter, self.no_rect, "no")
+
+        painter.setBrush(Qt.black)
+        painter.setPen(Qt.white)
+        painter.drawRect(self.question_rect)
+        painter.drawText(
+            self.question_rect.adjusted(10, 10, -10, -10),
+            Qt.AlignCenter | Qt.TextWordWrap,
+            self.question,
+        )
+
+        painter.setBrush(Qt.NoBrush)
+        painter.setPen(Qt.white)
         painter.drawRect(self.submit_rect)
         painter.drawText(self.submit_rect, Qt.AlignCenter, "SUBMIT")
         self.draw_dwell_bar(painter, self.submit_rect, "submit")
-
-        font.setPointSize(max(9, int(h * 0.03)))
-        painter.setFont(font)
-
-        for i, rect in enumerate(self.option_rects):
-            label = self.labels[i]
-
-            if self.selected_index == i:
-                painter.setBrush(QBrush(self.colors[i]))
-            else:
-                painter.setBrush(Qt.NoBrush)
-
-            painter.setPen(Qt.white)
-            painter.drawRect(rect)
-            painter.drawText(
-                rect.adjusted(10, 5, -10, -5),
-                Qt.AlignCenter | Qt.TextWordWrap,
-                str(label),
-            )
-
-            self.draw_dwell_bar(painter, rect, f"opt{i}")
 
         if not self.gazePointBlocked:
             gx, gy = self.map_gaze_to_widget()

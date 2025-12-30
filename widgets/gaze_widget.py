@@ -1,4 +1,4 @@
-# ui/gaze_widget.py
+# widgets/gaze_widget.py
 
 from __future__ import annotations
 

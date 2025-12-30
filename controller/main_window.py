@@ -1,4 +1,4 @@
-# ui/main_window.py
+# widgets/main_window.py
 
 from __future__ import annotations
 
@@ -11,14 +11,14 @@ from typing import Any, Dict, List, Optional
 from PySide6.QtWidgets import QMainWindow, QApplication
 
 from gaze.eyetracker_worker import EyeTrackerWorker
-from ui.InfoWidget import InfoWidget
-from ui.LikertScaleQuestionWidget import LikertScaleQuestionWidget
-from ui.MultipleChoiceQuestionWidget import MultipleChoiceQuestionWidget
-from ui.SmoothPursuit_LikertScaleWidget import SmoothPursuitLikertScaleWidget
-from ui.SmoothPursuit_MultipleChoiceWidget import SmoothPursuitMultipleChoiceWidget
-from ui.SmoothPursuit_YesNoWidget import SmoothPursuitYesNoWidget
-from ui.TextInputWidget import TextInputWidget
-from ui.YesNoQuestionWidget import YesNoQuestionWidget
+from widgets.InfoWidget import InfoWidget
+from widgets.LikertScaleQuestionWidget import LikertScaleQuestionWidget
+from widgets.MultipleChoiceQuestionWidget import MultipleChoiceQuestionWidget
+from widgets.SmoothPursuit_LikertScaleWidget import SmoothPursuitLikertScaleWidget
+from widgets.SmoothPursuit_MultipleChoiceWidget import SmoothPursuitMultipleChoiceWidget
+from widgets.SmoothPursuit_YesNoWidget import SmoothPursuitYesNoWidget
+from widgets.TextInputWidget import TextInputWidget
+from widgets.YesNoQuestionWidget import YesNoQuestionWidget
 
 
 class MainWindow(QMainWindow):
