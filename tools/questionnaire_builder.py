@@ -3,17 +3,20 @@ import json
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QSize, Signal
-from PySide6.QtGui import QAction, QFont, QIcon, QColor, QPainter, QPen
+from PySide6.QtGui import QAction, QFont, QColor, QPainter
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QApplication,QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QListWidget, QListWidgetItem, QTextEdit, QComboBox, QSpinBox,
     QFileDialog, QMessageBox, QFormLayout, QDialog, QDialogButtonBox,
     QLabel, QToolBar, QStyle, QStyledItemDelegate, QCheckBox
 )
 
+from themes import TYPE_COLOR_THEMES
+from stylesheets import *
 
 QUESTION_TYPES = ["info", "yesno", "mcq", "likert", "textgrid", "sp_yesno", "sp_mcq", "sp_likert"]
 ACTIVATIONS = ["dwell", "blink"]
+BUILDER_THEMES = ["neon", "retro_terminal", "clinical", "oled_dark"]
 
 
 # ------------------ helpers ------------------
@@ -21,239 +24,26 @@ ACTIVATIONS = ["dwell", "blink"]
 def pretty_json(data) -> str:
     return json.dumps(data, indent=2, ensure_ascii=False)
 
-def neon_stylesheet() -> str:
-    return """
-    QWidget {
-        background-color: #070A12;
-        color: #EAF2FF;
-        font-size: 14px;
-    }
-    QLabel { font-weight: 700; color: #EAF2FF; }
-
-    QToolBar {
-        background: #0B1330;
-        border-bottom: 1px solid rgba(102, 240, 255, 60);
-        spacing: 6px;
-        padding: 6px;
-    }
-    QToolButton {
-        background: transparent;
-        border-radius: 10px;
-        padding: 6px;
-        color: #EAF2FF;
-    }
-    QToolButton:hover {
-        background: rgba(102, 240, 255, 18);
-    }
-    QToolButton:pressed {
-        background: rgba(155, 124, 255, 22);
-    }
-
-    QListWidget {
-        background: rgba(15, 24, 56, 180);
-        border: 1px solid rgba(102, 240, 255, 45);
-        border-radius: 12px;
-    }
-    QListWidget::item { padding: 8px; }
-    QListWidget::item:selected {
-        background: transparent;
-        color: #EAF2FF;
-        border-radius: 8px;
-    }
-
-    QTextEdit {
-        background: rgba(15, 24, 56, 200);
-        border: 1px solid rgba(102, 240, 255, 45);
-        border-radius: 12px;
-        padding: 8px;
-        font-family: Consolas, Courier, monospace;
-        font-size: 12px;
-    }
-
-    QComboBox, QSpinBox {
-        background: rgba(15, 24, 56, 200);
-        border: 1px solid rgba(155, 124, 255, 55);
-        border-radius: 10px;
-        padding: 6px;
-        min-height: 30px;
-        color: #EAF2FF;
-    }
-
-    QStatusBar {
-        background: #0B1330;
-        border-top: 1px solid rgba(102, 240, 255, 45);
-        color: #B7C7E6;
-    }
-
-    QDialog { background: #0B1330; }
-    """
-
-def light_stylesheet() -> str:
-    return """
-    QWidget {
-        background-color: #f6f7fb;
-        color: #111827;
-        font-size: 14px;
-    }
-    QLabel { font-weight: 700; }
-
-    QToolBar {
-        background: #ffffff;
-        border-bottom: 1px solid #e5e7eb;
-        spacing: 6px;
-        padding: 6px;
-    }
-    QToolButton {
-        background: transparent;
-        border-radius: 8px;
-        padding: 6px;
-    }
-    QToolButton:hover { background: #f3f4f6; }
-    QToolButton:pressed { background: #e5e7eb; }
-
-    QListWidget {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-    }
-    QListWidget::item { padding: 8px; }
-    QListWidget::item:selected {
-        background: transparent;
-        color: #111827;
-        border-radius: 6px;
-    }
-
-    QTextEdit {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        padding: 8px;
-        font-family: Consolas, Courier, monospace;
-        font-size: 12px;
-    }
-
-    QComboBox, QSpinBox {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 6px;
-        min-height: 30px;
-    }
-
-    QStatusBar {
-        background: #ffffff;
-        border-top: 1px solid #e5e7eb;
-    }
-
-    QDialog { background: #ffffff; }
-    """
-
-
-def dark_stylesheet() -> str:
-    return """
-    QWidget {
-        background-color: #1e1e1e;
-        color: #eaeaea;
-        font-size: 14px;
-    }
-    QLabel { font-weight: 700; }
-
-    QToolBar {
-        background: #252526;
-        border-bottom: 1px solid #333;
-        spacing: 6px;
-        padding: 6px;
-    }
-    QToolButton {
-        background: transparent;
-        border-radius: 8px;
-        padding: 6px;
-    }
-    QToolButton:hover { background: #333333; }
-    QToolButton:pressed { background: #3c3c3c; }
-
-    QListWidget {
-        background: transparent;
-        border: 1px solid #333;
-        border-radius: 10px;
-    }
-    QListWidget::item { padding: 8px; }
-    QListWidget::item:selected { background: #094771; }
-
-    QTextEdit {
-        background: #1e1e1e;
-        border: 1px solid #333;
-        border-radius: 10px;
-        padding: 8px;
-        font-family: Consolas, Courier, monospace;
-        font-size: 12px;
-    }
-
-    QComboBox, QSpinBox {
-        background: #2d2d2d;
-        border: 1px solid #3c3c3c;
-        border-radius: 8px;
-        padding: 6px;
-        min-height: 30px;
-    }
-
-    QStatusBar {
-        background: #252526;
-        border-top: 1px solid #333;
-    }
-
-    QDialog { background: #252526; }
-    """
-
 def type_colors(theme: str) -> dict:
-    if theme == "neon":
-        # Futuristic / neon palette (matches your smooth-pursuit neon vibe)
-        return {
-            "info":     {"bg": "#0F1838", "accent": "#66F0FF", "fg": "#EAF2FF"},
-            "yesno":    {"bg": "#0F172A", "accent": "#3B82F6", "fg": "#EAF2FF"},
-            "mcq":      {"bg": "#071A18", "accent": "#39FF9A", "fg": "#EAF2FF"},
-            "likert":   {"bg": "#1B0B22", "accent": "#FF4FD8", "fg": "#FFE6FB"},
-            "textgrid": {"bg": "#231A05", "accent": "#F59E0B", "fg": "#FFF7ED"},
-            "sp_yesno": {"bg": "#0B1330", "accent": "#9B7CFF", "fg": "#EAF2FF"},
-            "sp_mcq":   {"bg": "#0B1330", "accent": "#39FF9A", "fg": "#EAF2FF"},
-            "sp_likert":{"bg": "#0B1330", "accent": "#FB7185", "fg": "#FFE4E6"},
-        }
+    fallback_theme = "clinical"
+    theme_map = TYPE_COLOR_THEMES.get(theme, TYPE_COLOR_THEMES[fallback_theme])
 
-    if theme == "dark":
-        return {
-            "info":     {"bg": "#1f2937", "accent": "#60a5fa", "fg": "#e5e7eb"},
-            "yesno":    {"bg": "#172554", "accent": "#3b82f6", "fg": "#e5e7eb"},
-            "mcq":      {"bg": "#14532d", "accent": "#22c55e", "fg": "#e5e7eb"},
-            "likert":   {"bg": "#3f1d2f", "accent": "#f472b6", "fg": "#fce7f3"},
-            "textgrid": {"bg": "#3b2f0b", "accent": "#f59e0b", "fg": "#fff7ed"},
-            "sp_yesno": {"bg": "#0f172a", "accent": "#a78bfa", "fg": "#e5e7eb"},
-            "sp_mcq":   {"bg": "#0f172a", "accent": "#34d399", "fg": "#e5e7eb"},
-            "sp_likert":{"bg": "#0f172a", "accent": "#fb7185", "fg": "#ffe4e6"},
-        }
-
-    # light
-    return {
-        "info":     {"bg": "#eef2ff", "accent": "#2563eb", "fg": "#111827"},
-        "yesno":    {"bg": "#eff6ff", "accent": "#1d4ed8", "fg": "#111827"},
-        "mcq":      {"bg": "#ecfdf5", "accent": "#16a34a", "fg": "#064e3b"},
-        "likert":   {"bg": "#fdf2f8", "accent": "#db2777", "fg": "#111827"},
-        "textgrid": {"bg": "#fffbeb", "accent": "#d97706", "fg": "#111827"},
-        "sp_yesno": {"bg": "#f5f3ff", "accent": "#7c3aed", "fg": "#111827"},
-        "sp_mcq":   {"bg": "#ecfdf5", "accent": "#059669", "fg": "#064e3b"},
-        "sp_likert":{"bg": "#fff1f2", "accent": "#e11d48", "fg": "#111827"},
-    }
+    base = TYPE_COLOR_THEMES[fallback_theme]
+    merged = dict(base)
+    merged.update(theme_map)
+    return merged
 
 
 def apply_theme(app: QApplication, mode: str):
     app.setStyle("Fusion")
     app.setFont(QFont("Segoe UI", 11))
 
-    if mode == "dark":
-        app.setStyleSheet(dark_stylesheet())
-    elif mode == "neon":
-        app.setStyleSheet(neon_stylesheet())
-    else:
-        app.setStyleSheet(light_stylesheet())
+    match mode:
+        case "neon": app.setStyleSheet(neon_stylesheet())
+        case "retro_terminal": app.setStyleSheet(retro_terminal_stylesheet())
+        case "clinical": app.setStyleSheet(clinical_stylesheet())
+        case "oled_dark": app.setStyleSheet(oled_dark_stylesheet())
+        case _ : app.setStyleSheet(clinical_stylesheet())
 
 
 # ------------------ DnD list widget ------------------
@@ -279,7 +69,7 @@ class ReorderListWidget(QListWidget):
 # ------------------ Item Editor ------------------
 
 class CardItemDelegate(QStyledItemDelegate):
-    def __init__(self, parent=None, get_theme=lambda: "dark"):
+    def __init__(self, parent=None, get_theme=lambda: "clinical"):
         super().__init__(parent)
         self.get_theme = get_theme
 
@@ -293,31 +83,17 @@ class CardItemDelegate(QStyledItemDelegate):
         qtype = it.get("type", "info")
         c = palette.get(qtype, palette["info"])
 
-        # Full-width rect inside viewport with margins
         r = option.rect.adjusted(10, 6, -10, -6)
 
         bg = QColor(c["bg"])
         fg = QColor(c["fg"])
         accent = QColor(c["accent"])
 
-        # Selection / hover
-        selected = bool(option.state & QStyle.State_Selected)
-        hovered = bool(option.state & QStyle.State_MouseOver)
 
-        if selected:
-            border = QColor(accent)
-            border.setAlpha(230)
-        elif hovered:
-            border = QColor(accent if theme == "neon" else "#000000")
-            border.setAlpha(140 if theme == "neon" else 45)
-        else:
-            border = QColor("#000000")
-            border.setAlpha(22 if theme == "neon" else (35 if theme == "dark" else 25))
 
         painter.setRenderHint(QPainter.Antialiasing, True)
 
         # Card background + border
-        painter.setPen(QPen(border, 1))
         painter.setBrush(bg)
         painter.drawRoundedRect(r, 10, 10)
 
@@ -457,7 +233,7 @@ class BuilderMainWindow(QMainWindow):
         self.current_path: Path | None = None
         self.gazepoint_blocked: bool = False
 
-        self.theme = "light"  # default
+        self.theme = "clinical"  # default
         apply_theme(QApplication.instance(), self.theme)
 
         self._build_toolbar()
@@ -486,12 +262,10 @@ class BuilderMainWindow(QMainWindow):
         self.act_save.setShortcut("Ctrl+S")
         self.act_del.setShortcut("Backspace")
 
-        # Theme toggle
-        self.icon_sun = self.style().standardIcon(QStyle.SP_DialogYesButton)
-        self.icon_moon = self.style().standardIcon(QStyle.SP_DialogNoButton)
-        self.act_theme = QAction(self.icon_moon, "Dark mode", self)
-        self.act_theme = QAction(self.icon_moon, "Theme: Light", self)
-        tb.addAction(self.act_theme)
+        self.theme_box = QComboBox()
+        self.theme_box.addItems(BUILDER_THEMES)
+        self.theme_box.setCurrentText(self.theme)
+        self.theme_box.currentTextChanged.connect(self.on_theme_changed)
 
         self.cb_gazepoint = QCheckBox("Block Gazepoint?")
         self.cb_gazepoint.setChecked(self.gazepoint_blocked)
@@ -502,11 +276,12 @@ class BuilderMainWindow(QMainWindow):
         tb.addAction(self.act_save)
         tb.addSeparator()
         tb.addAction(self.act_add)
-
         tb.addAction(self.act_edit)
         tb.addAction(self.act_del)
         tb.addSeparator()
-        tb.addAction(self.act_theme)
+        tb.addWidget(QLabel("Theme:"))
+        tb.addWidget(self.theme_box)
+        tb.addSeparator()
         tb.addWidget(self.cb_gazepoint)
 
         self.act_new.triggered.connect(self.new_json)
@@ -515,7 +290,6 @@ class BuilderMainWindow(QMainWindow):
         self.act_add.triggered.connect(self.add_item)
         self.act_edit.triggered.connect(self.edit_item)
         self.act_del.triggered.connect(self.delete_item)
-        self.act_theme.triggered.connect(self.cycle_theme)
 
     def _build_ui(self):
         self.list_widget = ReorderListWidget()
@@ -551,35 +325,24 @@ class BuilderMainWindow(QMainWindow):
         self.refresh()
 
     # ---------- theme ----------
-    def toggle_theme(self, checked: bool):
-        if checked:
-            self.theme = "dark"
-            self.act_theme.setIcon(self.icon_sun)
-            self.act_theme.setText("Light mode")
-        else:
-            self.theme = "light"
-            self.act_theme.setIcon(self.icon_moon)
-            self.act_theme.setText("Dark mode")
-
-        apply_theme(QApplication.instance(), self.theme)
-        self.statusBar().showMessage(f"Theme: {self.theme}", 1200)
 
     def cycle_theme(self):
-        order = ["light", "dark", "neon"]
+        order = ["clinical", "neon", "retro_terminal", "oled_dark"]
         i = order.index(self.theme) if self.theme in order else 0
         self.theme = order[(i + 1) % len(order)]
 
-        # icon + label
-        if self.theme == "light":
-            self.act_theme.setIcon(self.icon_moon)
-            self.act_theme.setText("Theme: Light")
-        elif self.theme == "dark":
-            self.act_theme.setIcon(self.icon_sun)
-            self.act_theme.setText("Theme: Dark")
-        else:
-            # neon: use something noticeable (reuse an icon, or set a custom one if you have it)
-            self.act_theme.setIcon(self.style().standardIcon(QStyle.SP_ComputerIcon))
+        # label
+        self.act_theme.setIcon(self.style().standardIcon(QStyle.SP_ComputerIcon))
+        if self.theme == "clinical":
+            self.act_theme.setText("Theme: Clinical")
+        elif self.theme == "neon":
             self.act_theme.setText("Theme: Neon")
+        elif self.theme == "retro_terminal":
+            self.act_theme.setText("Theme: Retro Terminal")
+        elif self.theme == "oled_dark":
+            self.act_theme.setText("Theme: Oled Dark")
+        else:
+            self.act_theme.setText("Theme: Clinical")
 
         apply_theme(QApplication.instance(), self.theme)
         self.list_widget.viewport().update()
@@ -594,6 +357,7 @@ class BuilderMainWindow(QMainWindow):
                         "title": "Gaze Questionnaire",
                         "version": 1
                     },
+                "theme": self.theme,
                 "gazepoint_blocked": self.gazepoint_blocked,
                 "items":
                     self.items
@@ -618,7 +382,6 @@ class BuilderMainWindow(QMainWindow):
         return f"{idx:02d}. [{qtype} | {act}] {txt}"
 
     def refresh(self):
-        # selection-by-object (dict identity) behalten
         selected_obj = None
         row = self.list_widget.currentRow()
         if 0 <= row < self.list_widget.count():
@@ -632,7 +395,6 @@ class BuilderMainWindow(QMainWindow):
             self.list_widget.addItem(item)
         self.list_widget.blockSignals(False)
 
-        # restore selection if possible
         if selected_obj is not None:
             for i in range(self.list_widget.count()):
                 if self.list_widget.item(i).data(Qt.UserRole) is selected_obj:
@@ -643,11 +405,14 @@ class BuilderMainWindow(QMainWindow):
             self.cb_gazepoint.setChecked(bool(self.gazepoint_blocked))
             self.cb_gazepoint.blockSignals(False)
 
+        if hasattr(self, "theme_box"):
+            self.theme_box.blockSignals(True)
+            self.theme_box.setCurrentText(self.theme)
+            self.theme_box.blockSignals(False)
         self.json_preview.setPlainText(pretty_json(self.doc()))
 
     # ---------- drag&drop reorder ----------
     def on_list_reordered(self):
-        # after DnD, rebuild items from current list order (UserRole points to dicts)
         new_items = []
         for i in range(self.list_widget.count()):
             it = self.list_widget.item(i).data(Qt.UserRole)
@@ -660,8 +425,17 @@ class BuilderMainWindow(QMainWindow):
     def on_gazepoint_blocked_changed(self, checked: bool):
         self.gazepoint_blocked = bool(checked)
         self.refresh()
-        self.save_json()
         self.statusBar().showMessage(f"Blocked Gazepoint: {self.gazepoint_blocked}", 1500)
+
+    def on_theme_changed(self, theme: str):
+        if theme not in ("clinical", "retro_terminal", "neon", "oled_dark"):
+            theme = "clinical"
+
+        self.theme = theme
+        apply_theme(QApplication.instance(), self.theme)
+        self.list_widget.viewport().update()
+        self.refresh()
+        self.statusBar().showMessage(f"Theme: {self.theme}", 1200)
 
     # ---------- actions ----------
     def add_item(self):
@@ -670,7 +444,6 @@ class BuilderMainWindow(QMainWindow):
             self.items.append(dlg.get_item())
             self.refresh()
             self.list_widget.setCurrentRow(len(self.items) - 1)
-            self.save_json()
             self.statusBar().showMessage("Item added", 1500)
 
     def edit_item(self):
@@ -682,7 +455,6 @@ class BuilderMainWindow(QMainWindow):
             self.items[row] = dlg.get_item()
             self.refresh()
             self.list_widget.setCurrentRow(row)
-            self.save_json()
             self.statusBar().showMessage("Item updated", 1500)
 
     def delete_item(self):
@@ -691,7 +463,6 @@ class BuilderMainWindow(QMainWindow):
             return
         del self.items[row]
         self.refresh()
-        self.save_json()
         self.statusBar().showMessage("Item deleted", 1500)
 
     def new_json(self):
@@ -733,10 +504,17 @@ class BuilderMainWindow(QMainWindow):
         if not isinstance(items, list):
             QMessageBox.warning(self, "Invalid JSON", "Missing 'items' list.")
             return
+
         gp = data.get("gazepoint_blocked", False)
         if isinstance(gp, str):
             gp = gp.strip().lower() in ("true", "1", "yes")
         self.gazepoint_blocked = bool(gp)
+
+        theme = data.get("theme")
+        if theme not in ("clinical", "neon", "retro_terminal", "oled_dark"):
+            theme = "clinical"
+        self.theme = theme
+        apply_theme(QApplication.instance(), self.theme)
 
         self.items = items
         self.current_path = Path(path)

@@ -48,7 +48,7 @@ class MainWindow(QMainWindow):
     - gaze_questionnaire_clicks.csv: one row per click/toggle activation (timing + area label)
     """
 
-    def __init__(self, estimator, smoother, gazepoint_blocked, dwell_threshold, blink_threshold, parent) -> None:
+    def __init__(self, estimator, smoother, gazepoint_blocked, theme, dwell_threshold, blink_threshold, parent) -> None:
         """
         Initialize the main window and set up logging directories/files.
 
@@ -71,6 +71,7 @@ class MainWindow(QMainWindow):
         self.estimator = estimator
         self.smoother = smoother
         self.gazepoint_blocked = gazepoint_blocked
+        self.theme = theme
         self.blink_threshold = blink_threshold
         self.dwell_threshold = dwell_threshold
         self.parent = parent
@@ -343,6 +344,7 @@ class MainWindow(QMainWindow):
                     duration_sec = meta.get("duration", 5),
                     parent = self.parent,
                     gazepoint_blocked = self.gazepoint_blocked,
+                    theme=self.theme
                 )
             case "yesno":
                 widget = YesNoQuestionWidget(
@@ -351,7 +353,8 @@ class MainWindow(QMainWindow):
                     parent=self.parent,
                     gazepoint_blocked = self.gazepoint_blocked,
                     dwell_threshold_ms = self.dwell_threshold,
-                    blink_threshold_ms = self.blink_threshold
+                    blink_threshold_ms = self.blink_threshold,
+                    theme=self.theme
                 )
             case "mcq":
                 widget = MultipleChoiceQuestionWidget(
@@ -361,7 +364,8 @@ class MainWindow(QMainWindow):
                     parent = self.parent,
                     gazepoint_blocked = self.gazepoint_blocked,
                     dwell_threshold_ms = self.dwell_threshold,
-                    blink_threshold_ms = self.blink_threshold
+                    blink_threshold_ms = self.blink_threshold,
+                    theme=self.theme
                 )
             case "likert":
                 widget = LikertScaleQuestionWidget(
@@ -371,7 +375,8 @@ class MainWindow(QMainWindow):
                     parent = self.parent,
                     gazepoint_blocked=self.gazepoint_blocked,
                     dwell_threshold_ms=self.dwell_threshold,
-                    blink_threshold_ms=self.blink_threshold
+                    blink_threshold_ms=self.blink_threshold,
+                    theme=self.theme
                 )
             case "textgrid":
                 widget = TextInputWidget(
@@ -380,27 +385,31 @@ class MainWindow(QMainWindow):
                     parent = self.parent,
                     gazepoint_blocked = self.gazepoint_blocked,
                     dwell_threshold_ms = self.dwell_threshold,
-                    blink_threshold_ms = self.blink_threshold
+                    blink_threshold_ms = self.blink_threshold,
+                    theme=self.theme
                 )
             case "sp_yesno":
                 widget = SmoothPursuitYesNoWidget(
                     meta.get("text", ""),
                     parent = self.parent,
-                    gazepoint_blocked = self.gazepoint_blocked
+                    gazepoint_blocked = self.gazepoint_blocked,
+                    theme=self.theme
                 )
             case "sp_mcq":
                 widget = SmoothPursuitMultipleChoiceWidget(
                     meta.get("text", ""),
                     parent = self.parent,
                     labels=meta.get("labels"),
-                    gazepoint_blocked=self.gazepoint_blocked
+                    gazepoint_blocked=self.gazepoint_blocked,
+                    theme=self.theme
                 )
             case "sp_likert":
                 widget = SmoothPursuitLikertScaleWidget(
                     meta.get("text", ""),
                     parent = self.parent,
                     labels=meta.get("labels"),
-                    gazepoint_blocked=self.gazepoint_blocked
+                    gazepoint_blocked=self.gazepoint_blocked,
+                    theme=self.theme
                 )
             case _ :
                 print("Question Type unknown:", meta["type"])

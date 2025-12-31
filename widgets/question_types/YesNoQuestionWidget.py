@@ -1,31 +1,18 @@
 # widgets/YesNoQuestionWidget.py
 from __future__ import annotations
 
-import math
-from dataclasses import dataclass
-
 from PySide6.QtCore import (
-    QElapsedTimer,
     QRect,
-    QRectF,
-    Qt,
-    Slot,
-    Signal, QPointF,
+    Signal
 )
 from PySide6.QtGui import (
-    QColor,
-    QFont,
-    QFontDatabase,
-    QFontMetrics,
     QLinearGradient,
-    QPainter,
     QPen,
-    QBrush,
     QPixmap,
 )
 from PySide6.QtWidgets import QApplication
 
-from widgets.gaze_widget import GazeWidget, NeonTheme
+from widgets.gaze_widget import *
 
 
 # -----------------------------------------------------------------------------
@@ -54,6 +41,7 @@ class YesNoQuestionWidget(GazeWidget):
         parent,
         question: str,
         gazepoint_blocked: bool,
+        theme: str,
         activation_mode: str,
         dwell_threshold_ms: int,
         blink_threshold_ms: int,
@@ -99,10 +87,20 @@ class YesNoQuestionWidget(GazeWidget):
         )
 
         # theme & font
-        self.theme = NeonTheme()
+        match theme:
+            case "neon":
+                self.theme = NeonTheme()
+            case "retro_terminal":
+                self.theme = RetroTerminalTheme()
+            case "clinical":
+                self.theme = ClinicalTheme()
+            case "oled_dark":
+                self.theme = OledDarkTheme()
+            case _:
+                self.theme = ClinicalTheme()
         self.base_font = _try_load_futuristic_font()
 
-        # caches
+        # caches for ui
         self._bg_cache = QPixmap()
         self._bg_cache_size = None
 

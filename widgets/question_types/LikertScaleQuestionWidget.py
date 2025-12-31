@@ -1,24 +1,15 @@
 # widgets/LikertScaleQuestionWidget.py
 from __future__ import annotations
 
-import math
-from dataclasses import dataclass
-
-from PySide6.QtCore import QElapsedTimer, QRect, QRectF, Slot, Qt, Signal, QPointF
+from PySide6.QtCore import QRect, QRectF, Signal
 from PySide6.QtGui import (
-    QColor,
-    QFont,
-    QFontDatabase,
-    QFontMetrics,
     QLinearGradient,
-    QPainter,
     QPen,
-    QBrush,
     QPixmap,
 )
 from PySide6.QtWidgets import QApplication
 
-from widgets.gaze_widget import GazeWidget, NeonTheme
+from widgets.gaze_widget import *
 
 def _try_load_futuristic_font() -> QFont:
     preferred = ["Orbitron", "Oxanium", "Exo 2", "Rajdhani", "Space Grotesk", "Inter"]
@@ -45,6 +36,7 @@ class LikertScaleQuestionWidget(GazeWidget):
         parent,
         question: str,
         gazepoint_blocked: bool,
+        theme: str,
         activation_mode: str,
         dwell_threshold_ms: int,
         blink_threshold_ms: int,
@@ -96,7 +88,17 @@ class LikertScaleQuestionWidget(GazeWidget):
         )
 
         # Theme + font
-        self.theme = NeonTheme()
+        match theme:
+            case "neon":
+                self.theme = NeonTheme()
+            case "retro_terminal":
+                self.theme = RetroTerminalTheme()
+            case "clinical":
+                self.theme = ClinicalTheme()
+            case "oled_dark":
+                self.theme = OledDarkTheme()
+            case _:
+                self.theme = ClinicalTheme()
         self.base_font = _try_load_futuristic_font()
 
         # Caches

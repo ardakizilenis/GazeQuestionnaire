@@ -10,9 +10,11 @@ from typing import Any, Dict, List
 from PySide6.QtWidgets import QApplication
 
 from eyetrax import GazeEstimator, run_9_point_calibration
+from eyetrax.calibration import run_5_point_calibration
 from eyetrax.filters import KalmanSmoother, make_kalman
 
 from controller.main_window import MainWindow
+from widgets.gaze_widget import CyberpunkTheme
 
 
 def load_questionnaire(path: str) -> List[Dict[str, Any]]:
@@ -45,6 +47,10 @@ def load_questionnaire(path: str) -> List[Dict[str, Any]]:
 def load_gazepoint_blocked(path: str) -> bool:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     return data["gazepoint_blocked"]
+
+def load_theme(path: str) -> str:
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    return data["theme"]
 
 def enqueue_from_json(window: MainWindow, items: List[Dict[str, Any]]) -> None:
     """
@@ -127,10 +133,13 @@ def main() -> None:
     window = MainWindow(
         estimator,
         smoother,
+        # None,
+        # None,
         parent=None,
         gazepoint_blocked=load_gazepoint_blocked("questionnaire.json"),
         dwell_threshold=1200,
-        blink_threshold=500
+        blink_threshold=500,
+        theme=load_theme("questionnaire.json"),
     )
 
     items = load_questionnaire("questionnaire.json")

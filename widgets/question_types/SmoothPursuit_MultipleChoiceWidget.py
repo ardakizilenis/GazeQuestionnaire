@@ -8,21 +8,16 @@ import time
 from typing import Dict, List, Optional, Tuple, Set
 
 import numpy as np
-from PySide6.QtCore import Qt, QRect, QTimer, Slot, Signal, QPointF
+from PySide6.QtCore import QRect, QTimer, Signal
 from PySide6.QtGui import (
-    QColor,
-    QFont,
-    QFontDatabase,
     QLinearGradient,
-    QPainter,
     QPen,
-    QBrush,
     QPixmap,
     QPainterPath,
 )
 from PySide6.QtWidgets import QApplication
 
-from widgets.gaze_widget import GazeWidget, NeonTheme
+from widgets.gaze_widget import *
 
 
 # -------------------------- signal processing (unchanged) --------------------------
@@ -119,6 +114,7 @@ class SmoothPursuitMultipleChoiceWidget(GazeWidget):
         self,
         question: str,
         gazepoint_blocked: bool,
+        theme: str,
         labels: Optional[List[str]],
         parent,
         # Pursuit params
@@ -210,7 +206,17 @@ class SmoothPursuitMultipleChoiceWidget(GazeWidget):
         self.log_extra = "sp_mcq_multi"
 
         # ---- neon theme + caches ----
-        self.theme = NeonTheme()
+        match theme:
+            case "neon":
+                self.theme = NeonTheme()
+            case "retro_terminal":
+                self.theme = RetroTerminalTheme()
+            case "clinical":
+                self.theme = ClinicalTheme()
+            case "oled_dark":
+                self.theme = OledDarkTheme()
+            case _:
+                self.theme = ClinicalTheme()
         self.base_font = _try_load_futuristic_font()
 
         self._scan_tile = QPixmap()

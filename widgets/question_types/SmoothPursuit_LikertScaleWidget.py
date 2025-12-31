@@ -8,22 +8,17 @@ import time
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
-from PySide6.QtCore import Qt, QRect, QTimer, Slot, Signal, QPoint, QRectF, QPointF
+from PySide6.QtCore import QRect, QTimer, Signal, QPoint, QRectF
 from PySide6.QtGui import (
-    QColor,
-    QFont,
-    QFontDatabase,
     QLinearGradient,
-    QPainter,
     QPen,
-    QBrush,
     QPolygon,
     QPixmap,
     QPainterPath,
 )
 from PySide6.QtWidgets import QApplication
 
-from widgets.gaze_widget import GazeWidget, NeonTheme
+from widgets.gaze_widget import *
 
 
 # -------------------------- signal processing (unchanged) --------------------------
@@ -111,6 +106,7 @@ class SmoothPursuitLikertScaleWidget(GazeWidget):
         self,
         question: str,
         gazepoint_blocked: bool,
+        theme: str,
         labels: Optional[List[str]],
         parent,
         # Pursuit Params
@@ -202,7 +198,17 @@ class SmoothPursuitLikertScaleWidget(GazeWidget):
         self.log_extra = f"sp_likert5;labels={self.labels}"
 
         # ---- neon theme + caches ----
-        self.theme = NeonTheme()
+        match theme:
+            case "neon":
+                self.theme = NeonTheme()
+            case "retro_terminal":
+                self.theme = RetroTerminalTheme()
+            case "clinical":
+                self.theme = ClinicalTheme()
+            case "oled_dark":
+                self.theme = OledDarkTheme()
+            case _:
+                self.theme = ClinicalTheme()
         self.base_font = _try_load_futuristic_font()
 
         self._scan_tile = QPixmap()

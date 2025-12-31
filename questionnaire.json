@@ -3,6 +3,7 @@
     "title": "Gaze Questionnaire",
     "version": 1
   },
+  "theme": "calm_research",
   "gazepoint_blocked": false,
   "items": [
     {

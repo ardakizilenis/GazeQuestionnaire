@@ -143,20 +143,134 @@ class GazeWidget(QWidget):
 class NeonTheme:
     bg0: QColor = QColor("#070A12")
     bg1: QColor = QColor("#0B1330")
-
     neon_cyan: QColor = QColor("#66F0FF")
     neon_pink: QColor = QColor("#FF4FD8")
     neon_violet: QColor = QColor("#9B7CFF")
-
-    text: QColor = QColor("#EAF2FF")
     text_dim: QColor = QColor("#B7C7E6")
-
+    text: QColor = QColor("#EAF2FF")
+    bar_track: QColor = QColor("#1B2546")
+    bar_border: QColor = QColor("#4B5B86")
+    gaze: QColor = QColor("#FF3B3B")
     panel: QColor = QColor("#0F1838")
     panel_border: QColor = QColor("#44507A")
-
     submit: QColor = QColor("#66F0FF")
+    reset: QColor = QColor("#FF6A6A")
+    option_accent: QColor = QColor("#9B7CFF")
+    orbit: QColor = QColor("#6F7A9E")
+    guide: QColor = QColor("#6F7A9E")
+    selected: QColor = QColor("#39FF9A")
+    highlight: QColor = QColor("#EAF2FF")
+    disabled: QColor = QColor("#7C859E")
+    dot: QColor = QColor("#EAF2FF")
     backspace: QColor = QColor("#FF6A6A")
     back: QColor = QColor("#9B7CFF")
+    yes: QColor = QColor("#39FF9A")
+    no: QColor = QColor("#FF5A5A")
 
-    gaze: QColor = QColor("#FF3B3B")
+class RetroTerminalTheme:
+    bg0 = QColor("#020202")
+    bg1 = QColor("#020202")
 
+    neon_cyan   = QColor("#00FF9C")
+    neon_pink   = QColor("#00FF9C")
+    neon_violet = QColor("#00FF9C")
+
+    text = QColor("#00FF9C")
+    text_dim = QColor("#007F4E")
+
+    bar_track  = QColor("#001A10")
+    bar_border = QColor("#00FF9C")
+
+    gaze = QColor("#FF5555")
+
+    panel = QColor("#020202")
+    panel_border = QColor("#00FF9C")
+
+    submit = QColor("#00FF9C")
+    reset  = QColor("#FF5555")
+
+    option_accent = QColor("#00FF9C")
+    orbit = QColor("#004D30")
+    guide = QColor("#004D30")
+
+    selected  = QColor("#00FF9C")
+    highlight = QColor("#66FFCC")
+    disabled  = QColor("#004D30")
+
+    dot = QColor("#00FF9C")
+    backspace = QColor("#FF5555")
+    back = QColor("#00FF9C")
+    yes = QColor("#00FF9C")
+    no  = QColor("#FF5555")
+
+class ClinicalTheme:
+    bg0 = QColor("#F1F5F9")
+    bg1 = QColor("#E2E8F0")
+
+    neon_cyan   = QColor("#0EA5E9")
+    neon_pink   = QColor("#EC4899")
+    neon_violet = QColor("#6366F1")
+
+    text = QColor("#020617")
+    text_dim = QColor("#475569")
+
+    bar_track  = QColor("#CBD5E1")
+    bar_border = QColor("#94A3B8")
+
+    gaze = QColor("#B91C1C")
+
+    panel = QColor("#FFFFFF")
+    panel_border = QColor("#94A3B8")
+
+    submit = QColor("#0EA5E9")
+    reset  = QColor("#EC4899")
+
+    option_accent = QColor("#0EA5E9")
+    orbit = QColor("#64748B")
+    guide = QColor("#475569")
+
+    selected  = QColor("#15803D")
+    highlight = QColor("#0EA5E9")
+    disabled  = QColor("#94A3B8")
+
+    dot = QColor("#020617")
+    backspace = QColor("#B91C1C")
+    back = QColor("#6366F1")
+    yes = QColor("#15803D")
+    no  = QColor("#B91C1C")
+
+class OledDarkTheme:
+    bg0 = QColor("#000000")
+    bg1 = QColor("#000000")
+
+    neon_cyan   = QColor("#00E5FF")
+    neon_pink   = QColor("#FF4081")
+    neon_violet = QColor("#7C4DFF")
+
+    text = QColor("#EDEDED")
+    text_dim = QColor("#9E9E9E")
+
+    bar_track  = QColor("#121212")
+    bar_border = QColor("#2A2A2A")
+
+    gaze = QColor("#FF5252")
+
+    panel = QColor("#000000")
+    panel_border = QColor("#1F1F1F")
+
+    submit = QColor("#00E5FF")
+    reset  = QColor("#FF4081")
+
+    option_accent = QColor("#00E5FF")
+    orbit = QColor("#2A2A2A")
+    guide = QColor("#1F1F1F")
+
+    selected  = QColor("#69F0AE")
+    highlight = QColor("#82B1FF")
+    disabled  = QColor("#424242")
+
+    dot = QColor("#EDEDED")
+    backspace = QColor("#FF5252")
+    back = QColor("#7C4DFF")
+    yes = QColor("#69F0AE")
+    no  = QColor("#FF5252")

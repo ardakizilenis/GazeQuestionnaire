@@ -1,21 +1,17 @@
 # widgets/InfoWidget.py
 from __future__ import annotations
 
-from PySide6.QtCore import QElapsedTimer, QTimer, Qt, Signal, QRect, QRectF, QPointF
+from PySide6.QtCore import QTimer, Signal, QRect, QRectF
 from PySide6.QtGui import (
-    QColor,
-    QFont,
-    QFontDatabase,
     QFontMetrics,
     QLinearGradient,
-    QPainter,
     QPainterPath,
     QPen,
     QBrush,
     QPixmap,
 )
 
-from widgets.gaze_widget import GazeWidget, NeonTheme
+from widgets.gaze_widget import *
 
 def _try_load_futuristic_font() -> QFont:
     preferred = ["Orbitron", "Oxanium", "Exo 2", "Rajdhani", "Space Grotesk", "Inter"]
@@ -33,14 +29,20 @@ def _try_load_futuristic_font() -> QFont:
 class InfoWidget(GazeWidget):
     submitted = Signal(object)
 
-    def __init__(self, parent, gazepoint_blocked: bool, text: str, duration_sec: int):
+    def __init__(self, parent, gazepoint_blocked: bool, theme: str, text: str, duration_sec: int):
         super().__init__(parent)
 
         self.gazePointBlocked = gazepoint_blocked
         self.text = text
         self.duration_ms = max(1, int(duration_sec * 1000))
 
-        self.theme = NeonTheme()
+        match theme:
+            case "neon": self.theme = NeonTheme()
+            case "retro_terminal": self.theme = RetroTerminalTheme()
+            case "clinical": self.theme = ClinicalTheme()
+            case "oled_dark": self.theme = OledDarkTheme()
+            case _: self.theme = ClinicalTheme()
+
         self.base_font = _try_load_futuristic_font()
 
         self.timer = QElapsedTimer()
