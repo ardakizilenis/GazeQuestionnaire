@@ -40,11 +40,14 @@ This project is intended for **HCI / Eye-Tracking research**, usability studies,
 
 ### ++ New Features in 1.2 ++
 
-- 4 Brand New Themes, that can be applied to your Questionnaire:
+- 7 Brand New Themes, that can be applied to your Questionnaire:
   - Clinical (Bright, Good for Studies and Focus)
   - Neon (Cyberpunk-inspired Retro Design)
   - Oled Dark (Dark, Battery Saving)
   - Retro Terminal (For Debugging, "Hacker"-Style)
+  - Sunset Synth
+  - Forest Mist
+  - Signal Contrast
 - Brand New Redesign of the Interface
 - Fixing Performance Issues
 - Remove Auto-Save

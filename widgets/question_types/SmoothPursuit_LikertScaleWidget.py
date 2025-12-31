@@ -198,17 +198,7 @@ class SmoothPursuitLikertScaleWidget(GazeWidget):
         self.log_extra = f"sp_likert5;labels={self.labels}"
 
         # ---- neon theme + caches ----
-        match theme:
-            case "neon":
-                self.theme = NeonTheme()
-            case "retro_terminal":
-                self.theme = RetroTerminalTheme()
-            case "clinical":
-                self.theme = ClinicalTheme()
-            case "oled_dark":
-                self.theme = OledDarkTheme()
-            case _:
-                self.theme = ClinicalTheme()
+        self.matchTheme(theme)
         self.base_font = _try_load_futuristic_font()
 
         self._scan_tile = QPixmap()
@@ -480,44 +470,6 @@ class SmoothPursuitLikertScaleWidget(GazeWidget):
         p.end()
         self._static_ui_cache = pm
         self._static_ui_key = key
-
-    """
-    def _ensure_info_cache(self):
-        self._ensure_layout_cache()
-        w, h = max(1, self.width()), max(1, self.height())
-        info_pt = max(15, int(h * 0.027))
-        key = (w, h, info_pt)
-        if self._info_cache_key == key and not self._info_cache.isNull():
-            return
-
-        pm = QPixmap(w, h)
-        pm.fill(Qt.transparent)
-        p = QPainter(pm)
-        p.setRenderHint(QPainter.TextAntialiasing, True)
-
-        font = QFont(self.base_font)
-        font.setPointSize(info_pt)
-        font.setBold(False)
-        p.setFont(font)
-
-        # subtle panel behind header
-        info_rect = QRect(28, 18, w - 56, int(h * 0.13))
-        panel = info_rect.adjusted(0, 0, 0, 0)
-        p.setBrush(QColor(self.theme.panel.red(), self.theme.panel.green(), self.theme.panel.blue(), 150))
-        p.setPen(QPen(QColor(self.theme.panel_border.red(), self.theme.panel_border.green(), self.theme.panel_border.blue(), 180), 2))
-        p.drawRoundedRect(QRectF(panel), 14, 14)
-
-        p.setPen(self.theme.text_dim)
-        p.drawText(
-            info_rect.adjusted(14, 10, -14, -10),
-            Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap,
-            "Follow the moving DOT to SELECT an option. Follow SUBMIT to submit.",
-        )
-
-        p.end()
-        self._info_cache = pm
-        self._info_cache_key = key
-    """
 
     # -------------------------- target motion (unchanged) --------------------------
 

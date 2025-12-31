@@ -14,10 +14,51 @@ from PySide6.QtWidgets import (
 from themes import TYPE_COLOR_THEMES
 from stylesheets import *
 
+# ---- Theme registry (single source of truth) ----
+
+THEME_REGISTRY = {
+    "neon": {
+        "label": "Neon",
+        "stylesheet": neon_stylesheet,
+        "app_font": ("Segoe UI", 11),
+    },
+    "retro_terminal": {
+        "label": "Retro Terminal",
+        "stylesheet": retro_terminal_stylesheet,
+        "app_font": ("Segoe UI", 11),
+    },
+    "clinical": {
+        "label": "Clinical",
+        "stylesheet": clinical_stylesheet,
+        "app_font": ("Segoe UI", 11),
+    },
+    "oled_dark": {
+        "label": "Oled Dark",
+        "stylesheet": oled_dark_stylesheet,
+        "app_font": ("Segoe UI", 11),
+    },
+    "sunset_synth": {
+        "label": "Sunset Synth",
+        "stylesheet": sunset_synth_stylesheet,
+        "app_font": ("Segoe UI", 11),
+    },
+    "forest_mist": {
+        "label": "Forest Mist",
+        "stylesheet": forest_mist_stylesheet,
+        "app_font": ("Segoe UI", 11),
+    },
+    "signal_contrast": {
+        "label": "Signal Contrast",
+        "stylesheet": signal_contrast_stylesheet,
+        "app_font": ("Segoe UI", 11),
+    },
+}
+
 QUESTION_TYPES = ["info", "yesno", "mcq", "likert", "textgrid", "sp_yesno", "sp_mcq", "sp_likert"]
 ACTIVATIONS = ["dwell", "blink"]
-BUILDER_THEMES = ["neon", "retro_terminal", "clinical", "oled_dark"]
-
+BUILDER_THEMES = list(THEME_REGISTRY.keys())
+THEME_NAMES = [THEME_REGISTRY[k]["label"] for k in BUILDER_THEMES]
+DEFAULT_THEME = "clinical"
 
 # ------------------ helpers ------------------
 
@@ -27,24 +68,20 @@ def pretty_json(data) -> str:
 def type_colors(theme: str) -> dict:
     fallback_theme = "clinical"
     theme_map = TYPE_COLOR_THEMES.get(theme, TYPE_COLOR_THEMES[fallback_theme])
-
     base = TYPE_COLOR_THEMES[fallback_theme]
     merged = dict(base)
     merged.update(theme_map)
     return merged
 
-
-def apply_theme(app: QApplication, mode: str):
+def apply_theme(app: QApplication, theme_key: str):
     app.setStyle("Fusion")
-    app.setFont(QFont("Segoe UI", 11))
+    cfg = THEME_REGISTRY.get(theme_key, THEME_REGISTRY[DEFAULT_THEME])
+    family, size = cfg.get("app_font", ("Segoe UI", 11))
+    app.setFont(QFont(family, size))
+    app.setStyleSheet(cfg["stylesheet"]())
 
-    match mode:
-        case "neon": app.setStyleSheet(neon_stylesheet())
-        case "retro_terminal": app.setStyleSheet(retro_terminal_stylesheet())
-        case "clinical": app.setStyleSheet(clinical_stylesheet())
-        case "oled_dark": app.setStyleSheet(oled_dark_stylesheet())
-        case _ : app.setStyleSheet(clinical_stylesheet())
-
+def normalize_theme(theme_key: str) -> str:
+    return theme_key if theme_key in THEME_REGISTRY else DEFAULT_THEME
 
 # ------------------ DnD list widget ------------------
 
@@ -88,8 +125,6 @@ class CardItemDelegate(QStyledItemDelegate):
         bg = QColor(c["bg"])
         fg = QColor(c["fg"])
         accent = QColor(c["accent"])
-
-
 
         painter.setRenderHint(QPainter.Antialiasing, True)
 
@@ -233,7 +268,7 @@ class BuilderMainWindow(QMainWindow):
         self.current_path: Path | None = None
         self.gazepoint_blocked: bool = False
 
-        self.theme = "clinical"  # default
+        self.theme = DEFAULT_THEME
         apply_theme(QApplication.instance(), self.theme)
 
         self._build_toolbar()
@@ -249,23 +284,30 @@ class BuilderMainWindow(QMainWindow):
 
         st = self.style()
 
-        self.act_new = QAction(st.standardIcon(QStyle.SP_FileIcon), "New", self)
-        self.act_open = QAction(st.standardIcon(QStyle.SP_DialogOpenButton), "Open", self)
-        self.act_save = QAction(st.standardIcon(QStyle.SP_DialogSaveButton), "Save", self)
-
-        self.act_add = QAction(st.standardIcon(QStyle.SP_FileDialogNewFolder), "Add", self)
-        self.act_edit = QAction(st.standardIcon(QStyle.SP_DesktopIcon), "Edit", self)
-        self.act_del = QAction(st.standardIcon(QStyle.SP_TrashIcon), "Delete", self)
+        self.act_new = QAction(st.standardIcon(QStyle.SP_FileIcon), "New (CTRL + N)", self)
+        self.act_open = QAction(st.standardIcon(QStyle.SP_DialogOpenButton), "Open (CTRL + O)", self)
+        self.act_save = QAction(st.standardIcon(QStyle.SP_DialogSaveButton), "Save (CTRL + S)", self)
+        self.act_add = QAction(st.standardIcon(QStyle.SP_FileDialogNewFolder), "Add (CTRL + A)", self)
+        self.act_edit = QAction(st.standardIcon(QStyle.SP_DesktopIcon), "Edit (CTRL + E)", self)
+        self.act_del = QAction(st.standardIcon(QStyle.SP_TrashIcon), "Delete (Backspace)", self)
 
         self.act_new.setShortcut("Ctrl+N")
         self.act_open.setShortcut("Ctrl+O")
         self.act_save.setShortcut("Ctrl+S")
+        self.act_add.setShortcut("Ctrl+A")
+        self.act_edit.setShortcut("Ctrl+E")
         self.act_del.setShortcut("Backspace")
 
         self.theme_box = QComboBox()
-        self.theme_box.addItems(BUILDER_THEMES)
-        self.theme_box.setCurrentText(self.theme)
-        self.theme_box.currentTextChanged.connect(self.on_theme_changed)
+        for key in BUILDER_THEMES:
+            label = THEME_NAMES[BUILDER_THEMES.index(key)]
+            self.theme_box.addItem(label, key)
+
+        i = self.theme_box.findData(self.theme)
+        if i >= 0:
+            self.theme_box.setCurrentIndex(i)
+
+        self.theme_box.currentIndexChanged.connect(self.on_theme_changed)
 
         self.cb_gazepoint = QCheckBox("Block Gazepoint?")
         self.cb_gazepoint.setChecked(self.gazepoint_blocked)
@@ -300,11 +342,10 @@ class BuilderMainWindow(QMainWindow):
         self.list_widget.setSpacing(6)
 
         self.list_widget.orderChanged.connect(self.on_list_reordered)
-        self.list_widget.itemDoubleClicked.connect(lambda _: self.edit_item())
+        self.list_widget.itemActivated.connect(lambda _: self.edit_item())
 
         self.json_preview = QTextEdit()
         self.json_preview.setReadOnly(True)
-        self.list_widget.setMouseTracking(True)
 
         left = QVBoxLayout()
         left.addWidget(QLabel("Items"))
@@ -325,63 +366,62 @@ class BuilderMainWindow(QMainWindow):
         self.refresh()
 
     # ---------- theme ----------
+    def set_theme(self, theme_key: str, *, update_combo: bool = True, show_status: bool = True):
+        theme_key = normalize_theme(theme_key)
+        if theme_key == self.theme:
+            return
+
+        self.theme = theme_key
+        apply_theme(QApplication.instance(), self.theme)
+
+        if update_combo and hasattr(self, "theme_box"):
+            self.theme_box.blockSignals(True)
+            self.theme_box.setCurrentText(self.theme)
+            self.theme_box.blockSignals(False)
+
+        self.list_widget.viewport().update()
+        self.refresh()
+
+        if show_status:
+            self.statusBar().showMessage(f"Theme: {THEME_NAMES[BUILDER_THEMES.index(self.theme)]}", 1200)
 
     def cycle_theme(self):
-        order = ["clinical", "neon", "retro_terminal", "oled_dark"]
+        order = BUILDER_THEMES
         i = order.index(self.theme) if self.theme in order else 0
-        self.theme = order[(i + 1) % len(order)]
+        self.set_theme(order[(i + 1) % len(order)])
 
-        # label
-        self.act_theme.setIcon(self.style().standardIcon(QStyle.SP_ComputerIcon))
-        if self.theme == "clinical":
-            self.act_theme.setText("Theme: Clinical")
-        elif self.theme == "neon":
-            self.act_theme.setText("Theme: Neon")
-        elif self.theme == "retro_terminal":
-            self.act_theme.setText("Theme: Retro Terminal")
-        elif self.theme == "oled_dark":
-            self.act_theme.setText("Theme: Oled Dark")
-        else:
-            self.act_theme.setText("Theme: Clinical")
-
-        apply_theme(QApplication.instance(), self.theme)
-        self.list_widget.viewport().update()
-        self.statusBar().showMessage(f"Theme: {self.theme}", 1200)
+    def on_theme_changed(self, _index: int):
+        theme_key = self.theme_box.currentData()
+        if not theme_key:
+            theme_key = "clinical"
+        self.set_theme(theme_key)
 
     # ---------- core ----------
     def doc(self) -> dict:
-        return \
-            {
-                "meta":
-                    {
-                        "title": "Gaze Questionnaire",
-                        "version": 1
-                    },
-                "theme": self.theme,
-                "gazepoint_blocked": self.gazepoint_blocked,
-                "items":
-                    self.items
-            }
+        return {
+            "meta": {"title": "Gaze Questionnaire", "version": 1},
+            "theme": self.theme,
+            "gazepoint_blocked": self.gazepoint_blocked,
+            "items": self.items,
+        }
 
     @staticmethod
     def format_item_label(it: dict, idx: int) -> str:
         qtype = it.get("type", "?")
-        txt = (it.get("text", "") or "").replace("\n", " ")
-        if len(txt) > 70:
-            txt = txt[:70] + "…"
+        txt = (it.get("text", "") or "").replace("\n", " ").strip()
+        if len(txt) > 50:
+            txt = txt[:50] + "…"
 
         if qtype == "info":
             return f"{idx:02d}. [info {it.get('duration', 5)}s] {txt}"
-        if qtype == "sp_yesno":
-            return f"{idx:02d}. [sp_yesno] {txt}"
-        if qtype == "sp_mcq":
-            return f"{idx:02d}. [sp_mcq] {txt}"
-        if qtype == "sp_likert":
-            return f"{idx:02d}. [sp_likert] {txt}"
+        if qtype in ("sp_yesno", "sp_mcq", "sp_likert"):
+            return f"{idx:02d}. [{qtype}] {txt}"
+
         act = it.get("activation", "")
         return f"{idx:02d}. [{qtype} | {act}] {txt}"
 
     def refresh(self):
+        # preserve selected object identity
         selected_obj = None
         row = self.list_widget.currentRow()
         if 0 <= row < self.list_widget.count():
@@ -390,9 +430,9 @@ class BuilderMainWindow(QMainWindow):
         self.list_widget.blockSignals(True)
         self.list_widget.clear()
         for i, it in enumerate(self.items, 1):
-            item = QListWidgetItem(self.format_item_label(it, i))
-            item.setData(Qt.UserRole, it)  # pointer to dict
-            self.list_widget.addItem(item)
+            lw_item = QListWidgetItem(self.format_item_label(it, i))
+            lw_item.setData(Qt.UserRole, it)
+            self.list_widget.addItem(lw_item)
         self.list_widget.blockSignals(False)
 
         if selected_obj is not None:
@@ -400,6 +440,7 @@ class BuilderMainWindow(QMainWindow):
                 if self.list_widget.item(i).data(Qt.UserRole) is selected_obj:
                     self.list_widget.setCurrentRow(i)
                     break
+
         if hasattr(self, "cb_gazepoint"):
             self.cb_gazepoint.blockSignals(True)
             self.cb_gazepoint.setChecked(bool(self.gazepoint_blocked))
@@ -407,18 +448,20 @@ class BuilderMainWindow(QMainWindow):
 
         if hasattr(self, "theme_box"):
             self.theme_box.blockSignals(True)
-            self.theme_box.setCurrentText(self.theme)
+            i = self.theme_box.findData(self.theme)
+            if i >= 0:
+                self.theme_box.setCurrentIndex(i)
             self.theme_box.blockSignals(False)
+
         self.json_preview.setPlainText(pretty_json(self.doc()))
 
     # ---------- drag&drop reorder ----------
     def on_list_reordered(self):
-        new_items = []
-        for i in range(self.list_widget.count()):
-            it = self.list_widget.item(i).data(Qt.UserRole)
-            if isinstance(it, dict):
-                new_items.append(it)
-        self.items = new_items
+        self.items = [
+            self.list_widget.item(i).data(Qt.UserRole)
+            for i in range(self.list_widget.count())
+            if isinstance(self.list_widget.item(i).data(Qt.UserRole), dict)
+        ]
         self.refresh()
         self.statusBar().showMessage("Reordered", 1200)
 
@@ -426,16 +469,6 @@ class BuilderMainWindow(QMainWindow):
         self.gazepoint_blocked = bool(checked)
         self.refresh()
         self.statusBar().showMessage(f"Blocked Gazepoint: {self.gazepoint_blocked}", 1500)
-
-    def on_theme_changed(self, theme: str):
-        if theme not in ("clinical", "retro_terminal", "neon", "oled_dark"):
-            theme = "clinical"
-
-        self.theme = theme
-        apply_theme(QApplication.instance(), self.theme)
-        self.list_widget.viewport().update()
-        self.refresh()
-        self.statusBar().showMessage(f"Theme: {self.theme}", 1200)
 
     # ---------- actions ----------
     def add_item(self):
@@ -448,7 +481,7 @@ class BuilderMainWindow(QMainWindow):
 
     def edit_item(self):
         row = self.list_widget.currentRow()
-        if row < 0 or row >= len(self.items):
+        if not (0 <= row < len(self.items)):
             return
         dlg = ItemEditorDialog(self, self.items[row])
         if dlg.exec():
@@ -459,7 +492,7 @@ class BuilderMainWindow(QMainWindow):
 
     def delete_item(self):
         row = self.list_widget.currentRow()
-        if row < 0 or row >= len(self.items):
+        if not (0 <= row < len(self.items)):
             return
         del self.items[row]
         self.refresh()
@@ -473,8 +506,6 @@ class BuilderMainWindow(QMainWindow):
         self.statusBar().showMessage("New document", 1500)
 
     def save_json(self):
-        doc = self.doc()
-
         if self.current_path is None:
             path, _ = QFileDialog.getSaveFileName(self, "Save JSON", "questionnaire.json", "JSON (*.json)")
             if not path:
@@ -482,7 +513,7 @@ class BuilderMainWindow(QMainWindow):
             self.current_path = Path(path)
 
         try:
-            self.current_path.write_text(pretty_json(doc), encoding="utf-8")
+            self.current_path.write_text(pretty_json(self.doc()), encoding="utf-8")
         except Exception as e:
             QMessageBox.critical(self, "Save failed", str(e))
             return
@@ -510,22 +541,18 @@ class BuilderMainWindow(QMainWindow):
             gp = gp.strip().lower() in ("true", "1", "yes")
         self.gazepoint_blocked = bool(gp)
 
-        theme = data.get("theme")
-        if theme not in ("clinical", "neon", "retro_terminal", "oled_dark"):
-            theme = "clinical"
-        self.theme = theme
-        apply_theme(QApplication.instance(), self.theme)
+        self.set_theme(data.get("theme", DEFAULT_THEME), show_status=False)
 
         self.items = items
         self.current_path = Path(path)
         self.refresh()
         self.statusBar().showMessage("Loaded", 1500)
 
+
 # ------------------ main ------------------
 
 if __name__ == "__main__":
     app = QApplication([])
-    # default theme will be applied by the window (dark)
     win = BuilderMainWindow()
     win.show()
     app.exec()

@@ -91,17 +91,7 @@ class TextInputWidget(GazeWidget):
         )
 
         # Theme + font
-        match theme:
-            case "neon":
-                self.theme = NeonTheme()
-            case "retro_terminal":
-                self.theme = RetroTerminalTheme()
-            case "clinical":
-                self.theme = ClinicalTheme()
-            case "oled_dark":
-                self.theme = OledDarkTheme()
-            case _:
-                self.theme = ClinicalTheme()
+        self.matchTheme(theme)
         self.base_font = _try_load_futuristic_font()
 
         # Caches

@@ -3,7 +3,7 @@
     "title": "Gaze Questionnaire",
     "version": 1
   },
-  "theme": "calm_research",
+  "theme": "clinical",
   "gazepoint_blocked": false,
   "items": [
     {

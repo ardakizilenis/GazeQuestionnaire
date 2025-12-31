@@ -10,7 +10,6 @@ from typing import Any, Dict, List
 from PySide6.QtWidgets import QApplication
 
 from eyetrax import GazeEstimator, run_9_point_calibration
-from eyetrax.calibration import run_5_point_calibration
 from eyetrax.filters import KalmanSmoother, make_kalman
 
 from controller.main_window import MainWindow
