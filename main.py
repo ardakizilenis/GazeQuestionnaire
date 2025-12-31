@@ -14,7 +14,6 @@ from eyetrax.calibration import run_5_point_calibration
 from eyetrax.filters import KalmanSmoother, make_kalman
 
 from controller.main_window import MainWindow
-from widgets.gaze_widget import CyberpunkTheme
 
 
 def load_questionnaire(path: str) -> List[Dict[str, Any]]:
