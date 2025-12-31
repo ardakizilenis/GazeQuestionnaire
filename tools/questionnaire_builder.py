@@ -21,6 +21,72 @@ ACTIVATIONS = ["dwell", "blink"]
 def pretty_json(data) -> str:
     return json.dumps(data, indent=2, ensure_ascii=False)
 
+def neon_stylesheet() -> str:
+    return """
+    QWidget {
+        background-color: #070A12;
+        color: #EAF2FF;
+        font-size: 14px;
+    }
+    QLabel { font-weight: 700; color: #EAF2FF; }
+
+    QToolBar {
+        background: #0B1330;
+        border-bottom: 1px solid rgba(102, 240, 255, 60);
+        spacing: 6px;
+        padding: 6px;
+    }
+    QToolButton {
+        background: transparent;
+        border-radius: 10px;
+        padding: 6px;
+        color: #EAF2FF;
+    }
+    QToolButton:hover {
+        background: rgba(102, 240, 255, 18);
+    }
+    QToolButton:pressed {
+        background: rgba(155, 124, 255, 22);
+    }
+
+    QListWidget {
+        background: rgba(15, 24, 56, 180);
+        border: 1px solid rgba(102, 240, 255, 45);
+        border-radius: 12px;
+    }
+    QListWidget::item { padding: 8px; }
+    QListWidget::item:selected {
+        background: transparent;
+        color: #EAF2FF;
+        border-radius: 8px;
+    }
+
+    QTextEdit {
+        background: rgba(15, 24, 56, 200);
+        border: 1px solid rgba(102, 240, 255, 45);
+        border-radius: 12px;
+        padding: 8px;
+        font-family: Consolas, Courier, monospace;
+        font-size: 12px;
+    }
+
+    QComboBox, QSpinBox {
+        background: rgba(15, 24, 56, 200);
+        border: 1px solid rgba(155, 124, 255, 55);
+        border-radius: 10px;
+        padding: 6px;
+        min-height: 30px;
+        color: #EAF2FF;
+    }
+
+    QStatusBar {
+        background: #0B1330;
+        border-top: 1px solid rgba(102, 240, 255, 45);
+        color: #B7C7E6;
+    }
+
+    QDialog { background: #0B1330; }
+    """
 
 def light_stylesheet() -> str:
     return """
@@ -140,9 +206,19 @@ def dark_stylesheet() -> str:
     """
 
 def type_colors(theme: str) -> dict:
-    """
-    Returns per-question-type colors for card background + accent stripe.
-    """
+    if theme == "neon":
+        # Futuristic / neon palette (matches your smooth-pursuit neon vibe)
+        return {
+            "info":     {"bg": "#0F1838", "accent": "#66F0FF", "fg": "#EAF2FF"},
+            "yesno":    {"bg": "#0F172A", "accent": "#3B82F6", "fg": "#EAF2FF"},
+            "mcq":      {"bg": "#071A18", "accent": "#39FF9A", "fg": "#EAF2FF"},
+            "likert":   {"bg": "#1B0B22", "accent": "#FF4FD8", "fg": "#FFE6FB"},
+            "textgrid": {"bg": "#231A05", "accent": "#F59E0B", "fg": "#FFF7ED"},
+            "sp_yesno": {"bg": "#0B1330", "accent": "#9B7CFF", "fg": "#EAF2FF"},
+            "sp_mcq":   {"bg": "#0B1330", "accent": "#39FF9A", "fg": "#EAF2FF"},
+            "sp_likert":{"bg": "#0B1330", "accent": "#FB7185", "fg": "#FFE4E6"},
+        }
+
     if theme == "dark":
         return {
             "info":     {"bg": "#1f2937", "accent": "#60a5fa", "fg": "#e5e7eb"},
@@ -154,22 +230,30 @@ def type_colors(theme: str) -> dict:
             "sp_mcq":   {"bg": "#0f172a", "accent": "#34d399", "fg": "#e5e7eb"},
             "sp_likert":{"bg": "#0f172a", "accent": "#fb7185", "fg": "#ffe4e6"},
         }
-    else:
-        return {
-            "info":     {"bg": "#eef2ff", "accent": "#2563eb", "fg": "#111827"},
-            "yesno":    {"bg": "#eff6ff", "accent": "#1d4ed8", "fg": "#111827"},
-            "mcq":      {"bg": "#ecfdf5", "accent": "#16a34a", "fg": "#064e3b"},
-            "likert":   {"bg": "#fdf2f8", "accent": "#db2777", "fg": "#111827"},
-            "textgrid": {"bg": "#fffbeb", "accent": "#d97706", "fg": "#111827"},
-            "sp_yesno": {"bg": "#f5f3ff", "accent": "#7c3aed", "fg": "#111827"},
-            "sp_mcq":   {"bg": "#ecfdf5", "accent": "#059669", "fg": "#064e3b"},
-            "sp_likert":{"bg": "#fff1f2", "accent": "#e11d48", "fg": "#111827"},
-        }
+
+    # light
+    return {
+        "info":     {"bg": "#eef2ff", "accent": "#2563eb", "fg": "#111827"},
+        "yesno":    {"bg": "#eff6ff", "accent": "#1d4ed8", "fg": "#111827"},
+        "mcq":      {"bg": "#ecfdf5", "accent": "#16a34a", "fg": "#064e3b"},
+        "likert":   {"bg": "#fdf2f8", "accent": "#db2777", "fg": "#111827"},
+        "textgrid": {"bg": "#fffbeb", "accent": "#d97706", "fg": "#111827"},
+        "sp_yesno": {"bg": "#f5f3ff", "accent": "#7c3aed", "fg": "#111827"},
+        "sp_mcq":   {"bg": "#ecfdf5", "accent": "#059669", "fg": "#064e3b"},
+        "sp_likert":{"bg": "#fff1f2", "accent": "#e11d48", "fg": "#111827"},
+    }
+
 
 def apply_theme(app: QApplication, mode: str):
     app.setStyle("Fusion")
     app.setFont(QFont("Segoe UI", 11))
-    app.setStyleSheet(dark_stylesheet() if mode == "dark" else light_stylesheet())
+
+    if mode == "dark":
+        app.setStyleSheet(dark_stylesheet())
+    elif mode == "neon":
+        app.setStyleSheet(neon_stylesheet())
+    else:
+        app.setStyleSheet(light_stylesheet())
 
 
 # ------------------ DnD list widget ------------------
@@ -222,9 +306,13 @@ class CardItemDelegate(QStyledItemDelegate):
 
         if selected:
             border = QColor(accent)
+            border.setAlpha(230)
+        elif hovered:
+            border = QColor(accent if theme == "neon" else "#000000")
+            border.setAlpha(140 if theme == "neon" else 45)
         else:
             border = QColor("#000000")
-            border.setAlpha(45 if hovered else (35 if theme == "dark" else 25))
+            border.setAlpha(22 if theme == "neon" else (35 if theme == "dark" else 25))
 
         painter.setRenderHint(QPainter.Antialiasing, True)
 
@@ -402,8 +490,9 @@ class BuilderMainWindow(QMainWindow):
         self.icon_sun = self.style().standardIcon(QStyle.SP_DialogYesButton)
         self.icon_moon = self.style().standardIcon(QStyle.SP_DialogNoButton)
         self.act_theme = QAction(self.icon_moon, "Dark mode", self)
-        self.act_theme.setCheckable(True)
-        self.act_theme.setChecked(False)  # light by default
+        self.act_theme = QAction(self.icon_moon, "Theme: Light", self)
+        tb.addAction(self.act_theme)
+
         self.cb_gazepoint = QCheckBox("Block Gazepoint?")
         self.cb_gazepoint.setChecked(self.gazepoint_blocked)
         self.cb_gazepoint.toggled.connect(self.on_gazepoint_blocked_changed)
@@ -420,16 +509,13 @@ class BuilderMainWindow(QMainWindow):
         tb.addAction(self.act_theme)
         tb.addWidget(self.cb_gazepoint)
 
-
-
         self.act_new.triggered.connect(self.new_json)
         self.act_open.triggered.connect(self.load_json)
         self.act_save.triggered.connect(self.save_json)
         self.act_add.triggered.connect(self.add_item)
         self.act_edit.triggered.connect(self.edit_item)
         self.act_del.triggered.connect(self.delete_item)
-        self.act_theme.toggled.connect(self.toggle_theme)
-
+        self.act_theme.triggered.connect(self.cycle_theme)
 
     def _build_ui(self):
         self.list_widget = ReorderListWidget()
@@ -476,6 +562,27 @@ class BuilderMainWindow(QMainWindow):
             self.act_theme.setText("Dark mode")
 
         apply_theme(QApplication.instance(), self.theme)
+        self.statusBar().showMessage(f"Theme: {self.theme}", 1200)
+
+    def cycle_theme(self):
+        order = ["light", "dark", "neon"]
+        i = order.index(self.theme) if self.theme in order else 0
+        self.theme = order[(i + 1) % len(order)]
+
+        # icon + label
+        if self.theme == "light":
+            self.act_theme.setIcon(self.icon_moon)
+            self.act_theme.setText("Theme: Light")
+        elif self.theme == "dark":
+            self.act_theme.setIcon(self.icon_sun)
+            self.act_theme.setText("Theme: Dark")
+        else:
+            # neon: use something noticeable (reuse an icon, or set a custom one if you have it)
+            self.act_theme.setIcon(self.style().standardIcon(QStyle.SP_ComputerIcon))
+            self.act_theme.setText("Theme: Neon")
+
+        apply_theme(QApplication.instance(), self.theme)
+        self.list_widget.viewport().update()
         self.statusBar().showMessage(f"Theme: {self.theme}", 1200)
 
     # ---------- core ----------

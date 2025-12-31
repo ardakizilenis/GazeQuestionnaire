@@ -1,53 +1,40 @@
 # widgets/MultipleChoiceQuestionWidget.py
-
 from __future__ import annotations
 
-from PySide6.QtCore import QElapsedTimer, QRect, Slot, Qt, Signal
-from PySide6.QtGui import QPainter, QBrush
+from dataclasses import dataclass
+
+from PySide6.QtCore import QElapsedTimer, QRect, QRectF, Slot, Qt, Signal, QPointF
+from PySide6.QtGui import (
+    QColor,
+    QFont,
+    QFontDatabase,
+    QLinearGradient,
+    QPainter,
+    QPen,
+    QBrush,
+    QPixmap,
+)
 from PySide6.QtWidgets import QApplication
 
-from widgets.gaze_widget import GazeWidget
+from widgets.gaze_widget import GazeWidget, NeonTheme
+
+
+def _try_load_futuristic_font() -> QFont:
+    preferred = ["Orbitron", "Oxanium", "Exo 2", "Rajdhani", "Space Grotesk", "Inter"]
+    fams = set(QFontDatabase.families())
+    for fam in preferred:
+        if fam in fams:
+            f = QFont(fam)
+            f.setStyleStrategy(QFont.PreferAntialias)
+            return f
+    f = QFont()
+    f.setStyleStrategy(QFont.PreferAntialias)
+    return f
 
 
 class MultipleChoiceQuestionWidget(GazeWidget):
     """
-    Multiple choice question widget with 4 options, plus RESET, REST, and SUBMIT areas.
-
-    Layout
-    ------
-    - Top row:    Option 0 (left), Option 1 (right)
-    - Middle row: RESET (left) | REST + question text (center) | SUBMIT (right)
-    - Bottom row: Option 2 (left), Option 3 (right)
-
-    Interaction
-    -----------
-    activation_mode:
-      - "blink": activation is triggered by holding a blink for at least `blink_threshold_ms`
-      - "dwell": activation is triggered by dwelling in an area for `dwell_threshold_ms`
-                (with an on-screen dwell progress bar after a grace period)
-
-    Selection
-    ---------
-    - Multi-select: selections are stored as a set of indices {0,1,2,3}
-    - RESET clears the selection set
-    - SUBMIT emits the currently selected labels in sorted index order
-
-    Signals
-    -------
-    submitted(object):
-        Emits List[str] of selected labels (e.g. ["A","C"]).
-    clicked(int, str):
-        Emits a click index and a label for logging:
-        - option activations emit the option label (e.g., "A")
-        - reset emits "reset"
-        - submit emits "submit"
-
-    Logging Fields (expected by MainWindow)
-    --------------------------------------
-    - log_toggles: counts every option toggle
-    - log_resets: counts selection resets
-    - log_backspaces: always 0 (not used)
-    - log_extra: configuration string
+    Neon-themed multiple choice widget (4 options + reset/rest/submit) with caching for performance.
     """
 
     submitted = Signal(object)
@@ -63,60 +50,43 @@ class MultipleChoiceQuestionWidget(GazeWidget):
         blink_threshold_ms: int,
         labels=None,
     ):
-        """
-        Initialize the multiple choice widget.
-
-        Parameters
-        ----------
-        question : str
-            Question text displayed in the center REST area.
-        parent : QWidget, optional
-            Parent Qt widget.
-        activation_mode : str, default="blink"
-            "blink" or "dwell".
-        dwell_threshold_ms : int, default=1200
-            Dwell duration (ms) required to activate an area in dwell mode.
-        blink_threshold_ms : int, default=250
-            Blink duration (ms) required to activate at the current gaze point in blink mode.
-        labels : list[str] | None, optional
-            Exactly four option labels. Defaults to ["A","B","C","D"].
-
-        Notes
-        -----
-        - The widget supports multi-select; toggling is per option.
-        - Submit always emits a list of labels ordered by option index.
-        """
         super().__init__(parent)
 
         self.gazePointBlocked = gazepoint_blocked
-        self.blink_fired = False
         self.question = question
+
         self.activation_mode = activation_mode
-        self.dwell_threshold_ms = dwell_threshold_ms
-        self.blink_threshold_ms = blink_threshold_ms
+        self.dwell_threshold_ms = int(dwell_threshold_ms)
+        self.blink_threshold_ms = int(blink_threshold_ms)
 
         if labels is None:
             self.labels = ["A", "B", "C", "D"]
         else:
             assert len(labels) == 4, "MultipleChoiceQuestionWidget requires exactly 4 labels."
-            self.labels = labels
+            self.labels = [str(l) for l in labels]
 
         self.selected: set[int] = set()
         self.click_index: int = 0
 
+        # Blink
         self.is_blinking = False
+        self.blink_fired = False
         self.blink_timer = QElapsedTimer()
 
+        # Dwell
         self.dwell_timer = QElapsedTimer()
         self.dwell_grace_ms = 700
         self.dwell_area: str | None = None
         self.dwell_progress: float = 0.0
 
+        # Layout
         self.option_rects = [QRect() for _ in range(4)]
         self.rect_reset = QRect()
         self.rect_rest = QRect()
         self.rect_submit = QRect()
+        self._layout_key = None
 
+        # Logging (unchanged)
         self.log_toggles = 0
         self.log_resets = 0
         self.log_backspaces = 0
@@ -127,29 +97,39 @@ class MultipleChoiceQuestionWidget(GazeWidget):
             f"blink_ms={self.blink_threshold_ms}"
         )
 
+        # Theme + font
+        self.theme = NeonTheme()
+        self.base_font = _try_load_futuristic_font()
+
+        # Caches
+        self._bg_cache = QPixmap()
+        self._bg_cache_size = None
+
+        self._scan_tile = QPixmap()
+        self._scan_ready = False
+
+        self._static_ui_cache = QPixmap()  # panels + labels + question (non-animated)
+        self._static_ui_key = None
+
+        self.setAttribute(Qt.WA_OpaquePaintEvent, True)
+        self.setAutoFillBackground(False)
+
+    # ------------------------------------------------------------------ Qt
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self._bg_cache = QPixmap()
+        self._bg_cache_size = None
+        self._scan_ready = False
+        self._static_ui_cache = QPixmap()
+        self._static_ui_key = None
+        self._layout_key = None
+
+    # ------------------------------------------------------------------ gaze/blink
+
     @Slot(float, float)
     def set_gaze(self, x: float, y: float):
-        """
-        Receive a gaze sample and update dwell state (if enabled).
-
-        Parameters
-        ----------
-        x : float
-            Raw gaze x-coordinate (input space).
-        y : float
-            Raw gaze y-coordinate (input space).
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - Always forwards gaze to `GazeWidget`.
-        - In dwell mode, maps gaze to widget coordinates and updates dwell logic.
-        """
         super().set_gaze(x, y)
-
         if self.activation_mode == "dwell":
             gx, gy = self.map_gaze_to_widget()
             if gx is not None and gy is not None:
@@ -157,24 +137,6 @@ class MultipleChoiceQuestionWidget(GazeWidget):
 
     @Slot(bool)
     def set_blinking(self, blinking: bool):
-        """
-        Receive blink state updates and trigger activation in blink mode.
-
-        Parameters
-        ----------
-        blinking : bool
-            True while a blink is ongoing, False when eyes are open.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - Only active when `activation_mode == "blink"`.
-        - A single activation is triggered once per blink when duration reaches
-          `blink_threshold_ms`.
-        """
         if self.activation_mode != "blink":
             return
 
@@ -185,35 +147,18 @@ class MultipleChoiceQuestionWidget(GazeWidget):
             return
 
         if blinking and self.is_blinking:
-            duration = self.blink_timer.elapsed()
-            if duration >= self.blink_threshold_ms and not self.blink_fired:
+            if self.blink_timer.elapsed() >= self.blink_threshold_ms and not self.blink_fired:
                 self.handle_activation_by_point()
                 self.blink_fired = True
             return
 
-        if (not blinking) and self.is_blinking:
+        if not blinking and self.is_blinking:
             self.is_blinking = False
             self.blink_fired = False
 
+    # ------------------------------------------------------------------ selection
+
     def toggle_option(self, index: int):
-        """
-        Toggle an option on/off by index.
-
-        Parameters
-        ----------
-        index : int
-            Option index in [0, 3].
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - Updates `selected` as a set of indices.
-        - Increments `log_toggles` on every toggle attempt that passes validation.
-        - Emits a beep and schedules a repaint.
-        """
         if not (0 <= index < 4):
             return
 
@@ -224,68 +169,25 @@ class MultipleChoiceQuestionWidget(GazeWidget):
 
         self.log_toggles += 1
         QApplication.beep()
-        self.update()
+        self.update(self.option_rects[index])
 
     def reset_selection(self):
-        """
-        Clear all selected options.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - Only counts as a reset if there was at least one selection.
-        - Increments `log_resets` when clearing.
-        """
         if not self.selected:
             return
-
         self.selected.clear()
         self.log_resets += 1
         QApplication.beep()
-        self.update()
+        for r in self.option_rects:
+            self.update(r)
 
     def activate_submit(self):
-        """
-        Submit the current selection.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - Emits `submitted` with the selected labels in ascending index order.
-        - Always beeps, even if the selection is empty.
-        """
         QApplication.beep()
         result_labels = [self.labels[i] for i in sorted(self.selected)]
         self.submitted.emit(result_labels)
-        self.update()
+
+    # ------------------------------------------------------------------ areas
 
     def area_for_point(self, x: int, y: int) -> str | None:
-        """
-        Determine which UI area contains a given point.
-
-        Parameters
-        ----------
-        x : int
-            X coordinate in widget space.
-        y : int
-            Y coordinate in widget space.
-
-        Returns
-        -------
-        str | None
-            One of:
-              - "opt0".."opt3"
-              - "reset"
-              - "rest"
-              - "submit"
-            or None if outside all regions.
-        """
         for i, rect in enumerate(self.option_rects):
             if rect.contains(x, y):
                 return f"opt{i}"
@@ -298,25 +200,6 @@ class MultipleChoiceQuestionWidget(GazeWidget):
         return None
 
     def handle_activation_for_area(self, area: str | None):
-        """
-        Handle an activation event for a given area identifier.
-
-        Parameters
-        ----------
-        area : str | None
-            Area id returned by `area_for_point`.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - "rest" and None are ignored.
-        - Option areas emit the option label via `clicked` then toggle selection.
-        - "reset" clears selection.
-        - "submit" emits current selection labels.
-        """
         if area is None or area == "rest":
             return
 
@@ -325,9 +208,8 @@ class MultipleChoiceQuestionWidget(GazeWidget):
                 idx = int(area[3:])
             except ValueError:
                 return
-            if not (0 <= idx < len(self.labels)):
+            if not (0 <= idx < 4):
                 return
-
             self.click_index += 1
             self.clicked.emit(self.click_index, str(self.labels[idx]))
             self.toggle_option(idx)
@@ -343,48 +225,17 @@ class MultipleChoiceQuestionWidget(GazeWidget):
             self.click_index += 1
             self.clicked.emit(self.click_index, "submit")
             self.activate_submit()
+            return
 
     def handle_activation_by_point(self):
-        """
-        Handle an activation at the current gaze point.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - Maps gaze to widget coordinates, resolves the area under gaze,
-          then dispatches to `handle_activation_for_area`.
-        """
         gx, gy = self.map_gaze_to_widget()
         if gx is None or gy is None:
             return
-        area = self.area_for_point(int(gx), int(gy))
-        self.handle_activation_for_area(area)
+        self.handle_activation_for_area(self.area_for_point(int(gx), int(gy)))
+
+    # ------------------------------------------------------------------ dwell
 
     def update_dwell(self, x: int, y: int):
-        """
-        Update dwell detection state given the current gaze position.
-
-        Parameters
-        ----------
-        x : int
-            Gaze x-coordinate in widget space.
-        y : int
-            Gaze y-coordinate in widget space.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - Dwell is ignored for None/"rest".
-        - When entering a new actionable area, dwell timer restarts.
-        - After a grace period, `dwell_progress` fills linearly up to 1.0.
-        - When `dwell_threshold_ms` is reached, triggers activation and resets progress.
-        """
         area = self.area_for_point(x, y)
 
         if area in (None, "rest"):
@@ -406,10 +257,7 @@ class MultipleChoiceQuestionWidget(GazeWidget):
             self.update()
             return
 
-        effective = self.dwell_threshold_ms - self.dwell_grace_ms
-        if effective <= 1:
-            effective = 1
-
+        effective = max(1, self.dwell_threshold_ms - self.dwell_grace_ms)
         self.dwell_progress = max(0.0, min(1.0, (elapsed - self.dwell_grace_ms) / effective))
 
         if elapsed >= self.dwell_threshold_ms:
@@ -419,70 +267,48 @@ class MultipleChoiceQuestionWidget(GazeWidget):
 
         self.update()
 
-    def _draw_dwell_bar(self, painter: QPainter, rect: QRect, area_name: str):
-        """
-        Draw a dwell progress bar along the bottom edge of an area rectangle.
+    # ------------------------------------------------------------------ caching/layout
 
-        Parameters
-        ----------
-        painter : QPainter
-            Active painter used for drawing.
-        rect : QRect
-            The rectangle of the area.
-        area_name : str
-            The dwell area identifier to match against `self.dwell_area`.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - Only draws in dwell mode and only for the currently active dwell area.
-        - The bar width is proportional to `dwell_progress`.
-        """
-        if self.activation_mode != "dwell":
+    def _ensure_scan_tile(self):
+        if self._scan_ready:
             return
-        if self.dwell_area != area_name:
-            return
-        if self.dwell_progress <= 0.0:
+        pm = QPixmap(8, 6)
+        pm.fill(Qt.transparent)
+        p = QPainter(pm)
+        c = QColor("#0A1030")
+        c.setAlpha(45)
+        p.fillRect(0, 0, 8, 1, c)
+        p.end()
+        self._scan_tile = pm
+        self._scan_ready = True
+
+    def _ensure_background(self):
+        w, h = self.width(), self.height()
+        if self._bg_cache_size == (w, h) and not self._bg_cache.isNull():
             return
 
-        bar_height = max(4, rect.height() // 15)
-        bar_width = int(rect.width() * self.dwell_progress)
-        bar_rect = QRect(rect.left(), rect.bottom() - bar_height + 1, bar_width, bar_height)
+        self._ensure_scan_tile()
 
-        painter.setBrush(QBrush(Qt.white))
-        painter.setPen(Qt.NoPen)
-        painter.drawRect(bar_rect)
+        pm = QPixmap(w, h)
+        pm.fill(Qt.black)
+        p = QPainter(pm)
 
-    def paintEvent(self, event):
-        """
-        Paint the widget UI.
+        grad = QLinearGradient(0, 0, 0, h)
+        grad.setColorAt(0.0, self.theme.bg0)
+        grad.setColorAt(1.0, self.theme.bg1)
+        p.fillRect(pm.rect(), grad)
 
-        Parameters
-        ----------
-        event : QPaintEvent
-            Qt paint event (required signature; unused).
+        p.drawTiledPixmap(0, 0, w, h, self._scan_tile)
+        p.end()
 
-        Returns
-        -------
-        None
+        self._bg_cache = pm
+        self._bg_cache_size = (w, h)
 
-        Notes
-        -----
-        - Computes all region rectangles from the current widget size.
-        - Draws selected options with a filled background.
-        - Draws dwell bars in dwell mode.
-        - Draws the gaze point as a red dot.
-        """
-        painter = QPainter(self)
-        painter.fillRect(self.rect(), Qt.black)
-        painter.setRenderHint(QPainter.Antialiasing, True)
-        painter.setPen(Qt.white)
-
-        w = self.width()
-        h = self.height()
+    def _ensure_layout(self):
+        w, h = self.width(), self.height()
+        key = (w, h)
+        if self._layout_key == key:
+            return
 
         top_h = int(h * 0.35)
         mid_h = int(h * 0.25)
@@ -499,50 +325,163 @@ class MultipleChoiceQuestionWidget(GazeWidget):
         self.rect_rest = QRect(third_w, mid_y, third_w, mid_h)
         self.rect_submit = QRect(2 * third_w, mid_y, w - 2 * third_w, mid_h)
 
-        font = painter.font()
-        font.setPointSize(max(10, int(h * 0.03)))
-        painter.setFont(font)
+        self._layout_key = key
+        self._static_ui_cache = QPixmap()
+        self._static_ui_key = None
 
-        for i, rect in enumerate(self.option_rects):
-            label = self.labels[i]
+    def _base_font_for(self, h: int) -> QFont:
+        f = QFont(self.base_font)
+        f.setBold(True)
+        f.setPointSize(max(12, int(h * 0.030)))
+        f.setLetterSpacing(QFont.PercentageSpacing, 102)
+        return f
 
-            if i in self.selected:
-                painter.setBrush(QBrush(Qt.darkGray))
-            else:
-                painter.setBrush(Qt.NoBrush)
+    def _ensure_static_ui_cache(self):
+        self._ensure_layout()
+        w, h = self.width(), self.height()
 
-            painter.setPen(Qt.white)
-            painter.drawRect(rect)
-            painter.drawText(
-                rect.adjusted(10, 10, -10, -10),
-                Qt.AlignCenter | Qt.TextWordWrap,
-                str(label),
-            )
+        font = self._base_font_for(h)
+        key = (w, h, self.question, tuple(self.labels), font.pointSize())
+        if self._static_ui_key == key and not self._static_ui_cache.isNull():
+            return
 
-            self._draw_dwell_bar(painter, rect, f"opt{i}")
+        pm = QPixmap(w, h)
+        pm.fill(Qt.transparent)
+        p = QPainter(pm)
+        p.setRenderHint(QPainter.Antialiasing, True)
+        p.setRenderHint(QPainter.TextAntialiasing, True)
 
-        painter.setBrush(Qt.NoBrush)
-        painter.setPen(Qt.white)
-        painter.drawRect(self.rect_reset)
-        painter.drawText(self.rect_reset, Qt.AlignCenter | Qt.TextWordWrap, "RESET")
-        self._draw_dwell_bar(painter, self.rect_reset, "reset")
+        def panel(rect: QRect, accent: QColor, title: str | None = None):
+            outer = rect.adjusted(10, 10, -10, -10)
+            p.setBrush(self.theme.panel)
 
-        painter.setBrush(Qt.NoBrush)
-        painter.setPen(Qt.white)
-        painter.drawRect(self.rect_rest)
-        question_rect = self.rect_rest.adjusted(10, 10, -10, -10)
-        painter.drawText(question_rect, Qt.AlignCenter | Qt.TextWordWrap, self.question)
+            # border
+            pen = QPen(self.theme.panel_border)
+            pen.setWidth(2)
+            p.setPen(pen)
+            p.drawRoundedRect(QRectF(outer), 14, 14)
 
-        painter.setBrush(Qt.NoBrush)
-        painter.setPen(Qt.white)
-        painter.drawRect(self.rect_submit)
-        painter.drawText(self.rect_submit, Qt.AlignCenter | Qt.TextWordWrap, "SUBMIT")
-        self._draw_dwell_bar(painter, self.rect_submit, "submit")
+            # subtle accent line
+            acc = QColor(accent)
+            acc.setAlpha(160)
+            pen2 = QPen(acc)
+            pen2.setWidth(2)
+            p.setPen(pen2)
+            p.drawLine(outer.left() + 12, outer.top() + 10, outer.right() - 12, outer.top() + 10)
+
+            if title is not None:
+                p.setPen(self.theme.text)
+                p.setFont(font)
+                p.drawText(outer, Qt.AlignCenter | Qt.TextWordWrap, title)
+
+        # option panels
+        opt_font = QFont(font)
+        opt_font.setPointSize(max(12, int(h * 0.035)))
+        for i, r in enumerate(self.option_rects):
+            p.setFont(opt_font)
+            panel(r, self.theme.option_accent, str(self.labels[i]))
+
+        # reset/rest/submit panels
+        panel(self.rect_reset, self.theme.reset, "RESET")
+        panel(self.rect_submit, self.theme.submit, "SUBMIT")
+        panel(self.rect_rest, self.theme.neon_cyan, None)
+
+        # question in REST area with light cached glow
+        q_outer = self.rect_rest.adjusted(10, 10, -10, -10)
+        q_inner = q_outer.adjusted(14, 14, -14, -14)
+
+        q_font = QFont(font)
+        q_font.setBold(True)
+        q_font.setPointSize(max(11, int(h * 0.024)))
+        p.setFont(q_font)
+
+        glow = QColor(self.theme.neon_cyan)
+        glow.setAlpha(55)
+        p.setPen(glow)
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            p.drawText(QRectF(q_inner).translated(dx, dy), Qt.AlignCenter | Qt.TextWordWrap, self.question)
+
+        p.setPen(self.theme.text)
+        p.drawText(QRectF(q_inner), Qt.AlignCenter | Qt.TextWordWrap, self.question)
+
+        p.end()
+        self._static_ui_cache = pm
+        self._static_ui_key = key
+
+    # ------------------------------------------------------------------ drawing overlays
+
+    def _draw_selected_overlays(self, p: QPainter):
+        # fill + border only for selected options
+        for i in self.selected:
+            if not (0 <= i < 4):
+                continue
+            outer = self.option_rects[i].adjusted(10, 10, -10, -10)
+
+            fill = QColor(self.theme.neon_violet)
+            fill.setAlpha(35)
+            p.setPen(Qt.NoPen)
+            p.setBrush(fill)
+            p.drawRoundedRect(QRectF(outer), 14, 14)
+
+            br = QColor(self.theme.neon_violet)
+            br.setAlpha(200)
+            pen = QPen(br)
+            pen.setWidth(3)
+            p.setPen(pen)
+            p.setBrush(Qt.NoBrush)
+            p.drawRoundedRect(QRectF(outer), 14, 14)
+
+    def _draw_dwell_bar(self, p: QPainter):
+        if self.activation_mode != "dwell":
+            return
+        if self.dwell_area is None or self.dwell_progress <= 0.0:
+            return
+
+        def bar_for(rect: QRect, accent: QColor):
+            outer = rect.adjusted(10, 10, -10, -10)
+            pad = 14
+            bar_h = max(4, outer.height() // 16)
+            full_w = max(1, outer.width() - 2 * pad)
+            fill_w = int(full_w * self.dwell_progress)
+            bar = QRect(outer.left() + pad, outer.bottom() - bar_h - pad + 1, fill_w, bar_h)
+
+            c = QColor(accent)
+            c.setAlpha(220)
+            p.setPen(Qt.NoPen)
+            p.setBrush(c)
+            p.drawRoundedRect(QRectF(bar), bar_h / 2.0, bar_h / 2.0)
+
+        a = self.dwell_area
+        if a == "reset":
+            bar_for(self.rect_reset, self.theme.reset)
+        elif a == "submit":
+            bar_for(self.rect_submit, self.theme.submit)
+        elif a.startswith("opt"):
+            try:
+                idx = int(a[3:])
+            except ValueError:
+                return
+            if 0 <= idx < 4:
+                bar_for(self.option_rects[idx], self.theme.neon_cyan)
+
+    # ------------------------------------------------------------------ paint
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing, True)
+
+        self._ensure_layout()
+        self._ensure_background()
+        self._ensure_static_ui_cache()
+
+        if not self._bg_cache.isNull():
+            p.drawPixmap(0, 0, self._bg_cache)
+        if not self._static_ui_cache.isNull():
+            p.drawPixmap(0, 0, self._static_ui_cache)
+
+        # dynamic overlays
+        self._draw_selected_overlays(p)
+        self._draw_dwell_bar(p)
 
         if not self.gazePointBlocked:
-            gx, gy = self.map_gaze_to_widget()
-            if gx is not None and gy is not None:
-                painter.setBrush(QBrush(Qt.red))
-                painter.setPen(Qt.NoPen)
-                r = self.point_radius
-                painter.drawEllipse(int(gx) - r, int(gy) - r, 2 * r, 2 * r)
+            self._draw_gaze(p)

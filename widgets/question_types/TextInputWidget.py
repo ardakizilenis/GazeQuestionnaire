@@ -1,48 +1,43 @@
 # widgets/TextInputWidget.py
-
 from __future__ import annotations
 
-from PySide6.QtCore import QElapsedTimer, QRect, Slot, Qt, Signal
-from PySide6.QtGui import QPainter, QBrush
+from PySide6.QtCore import QElapsedTimer, QRect, QRectF, Slot, Qt, Signal
+from PySide6.QtGui import (
+    QColor,
+    QFont,
+    QFontDatabase,
+    QLinearGradient,
+    QPainter,
+    QPen,
+    QBrush,
+    QPixmap,
+)
 from PySide6.QtWidgets import QApplication
 
-from widgets.gaze_widget import GazeWidget
+from widgets.gaze_widget import GazeWidget, NeonTheme
+
+def _try_load_futuristic_font() -> QFont:
+    preferred = ["Orbitron", "Oxanium", "Exo 2", "Rajdhani", "Space Grotesk", "Inter"]
+    fams = set(QFontDatabase.families())
+    for fam in preferred:
+        if fam in fams:
+            f = QFont(fam)
+            f.setStyleStrategy(QFont.PreferAntialias)
+            return f
+    f = QFont()
+    f.setStyleStrategy(QFont.PreferAntialias)
+    return f
 
 
 class TextInputWidget(GazeWidget):
     """
-    Eye-tracking text input widget using a 3x3 grid with two interaction modes.
+    Neon-themed, cached 3x3 grid text input widget.
 
-    Modes
-    -----
-    groups:
-        Select one of four letter groups using N/W/E/S cells.
-        SW = BACKSPACE, SE = SUBMIT, center shows prompt + current text.
-    letters:
-        After selecting a group, choose a letter from 7 slots:
-        ["NW", "NE", "W", "E", "SW", "S", "SE"] mapped onto the group's characters.
-        N = BACK (return to groups mode).
-
-    Activation Modes
-    ----------------
-    activation_mode:
-      - "blink": a blink held for at least `blink_threshold_ms` triggers activation
-      - "dwell": dwelling within a cell for `dwell_threshold_ms` triggers activation
-                with an on-screen dwell progress bar (after a grace period)
-
-    Signals
-    -------
-    submitted(object):
-        Emits the final entered text (str) upon submit.
-    clicked(int, str):
-        Emits a click index and a label describing the activated action, used for logging.
-
-    Logging Fields (expected by MainWindow)
-    --------------------------------------
-    - log_toggles: number of appended characters
-    - log_resets: always 0 (no resets)
-    - log_backspaces: number of backspaces
-    - log_extra: configuration string
+    Keeps your interaction logic identical, but renders with:
+    - cached background (gradient + scanlines)
+    - cached static mode UI (panels + labels)
+    - cached center text (prompt + current text) per content change
+    - only dynamic overlays per frame (dwell bar + minimal selection emphasis + gaze dot)
     """
 
     submitted = Signal(object)
@@ -55,30 +50,8 @@ class TextInputWidget(GazeWidget):
         gazepoint_blocked: bool,
         activation_mode: str,
         dwell_threshold_ms: int,
-        blink_threshold_ms: int
+        blink_threshold_ms: int,
     ):
-        """
-        Initialize the 3x3 grid text input widget.
-
-        Parameters
-        ----------
-        question : str
-            Prompt text shown in the center cell.
-        parent : QWidget, optional
-            Parent Qt widget.
-        activation_mode : str, default="dwell"
-            "dwell" or "blink".
-        dwell_threshold_ms : int, default=1200
-            Dwell duration (ms) required to activate a cell in dwell mode.
-        blink_threshold_ms : int, default=250
-            Blink duration (ms) required to activate the cell under gaze in blink mode.
-
-        Notes
-        -----
-        - The widget starts in "groups" mode.
-        - Group definitions are fixed to four strings:
-          "ABCDEFG", "HIJKLMN", "OPQRSTU", "VWXYZ " (space included).
-        """
         super().__init__(parent)
 
         self.question = question
@@ -121,45 +94,55 @@ class TextInputWidget(GazeWidget):
             f"blink_ms={self.blink_threshold_ms}"
         )
 
+        # Theme + font
+        self.theme = NeonTheme()
+        self.base_font = _try_load_futuristic_font()
+
+        # Caches
+        self._bg_cache = QPixmap()
+        self._bg_cache_size = None
+
+        self._scan_tile = QPixmap()
+        self._scan_ready = False
+
+        # Mode-specific static grid labels (groups/letters) excluding center text content
+        self._mode_cache = QPixmap()
+        self._mode_cache_key = None  # (w,h,mode,current_group_index,font_size)
+
+        # Center cell (question + current_text), changes often, cache separately
+        self._center_cache = QPixmap()
+        self._center_cache_key = None  # (w,h,mode,current_group_index,question,current_text,font_size)
+
+        # Layout
+        self._layout_key = None
+
+        self.setAttribute(Qt.WA_OpaquePaintEvent, True)
+        self.setAutoFillBackground(False)
+
+    # ------------------------------------------------------------------ utils / logging
+
     def _emit_click(self, label: str) -> None:
-        """
-        Emit a click event for logging.
-
-        Parameters
-        ----------
-        label : str
-            Action label (e.g., "group:0(A-G)", "char:A", "backspace", "submit").
-
-        Returns
-        -------
-        None
-        """
         self.click_index += 1
         self.clicked.emit(self.click_index, label)
 
+    # ------------------------------------------------------------------ Qt hooks
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self._bg_cache = QPixmap()
+        self._bg_cache_size = None
+        self._scan_ready = False
+        self._layout_key = None
+        self._mode_cache = QPixmap()
+        self._mode_cache_key = None
+        self._center_cache = QPixmap()
+        self._center_cache_key = None
+
+    # ------------------------------------------------------------------ gaze / blink
+
     @Slot(float, float)
     def set_gaze(self, x: float, y: float):
-        """
-        Receive a gaze sample and update dwell state (if enabled).
-
-        Parameters
-        ----------
-        x : float
-            Raw gaze x-coordinate (input space).
-        y : float
-            Raw gaze y-coordinate (input space).
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - Always forwards gaze to the base `GazeWidget`.
-        - In dwell mode, maps gaze to widget coordinates and updates dwell logic.
-        """
         super().set_gaze(x, y)
-
         if self.activation_mode == "dwell":
             gx, gy = self.map_gaze_to_widget()
             if gx is not None and gy is not None:
@@ -167,24 +150,6 @@ class TextInputWidget(GazeWidget):
 
     @Slot(bool)
     def set_blinking(self, blinking: bool):
-        """
-        Receive blink state updates and trigger activation in blink mode.
-
-        Parameters
-        ----------
-        blinking : bool
-            True while a blink is ongoing, False when eyes are open.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - Only active when `activation_mode == "blink"`.
-        - A single activation is triggered once per blink when duration reaches
-          `blink_threshold_ms`.
-        """
         if self.activation_mode != "blink":
             return
 
@@ -195,8 +160,7 @@ class TextInputWidget(GazeWidget):
             return
 
         if blinking and self.is_blinking:
-            duration = self.blink_timer.elapsed()
-            if duration >= self.blink_threshold_ms and not self.blink_fired:
+            if self.blink_timer.elapsed() >= self.blink_threshold_ms and not self.blink_fired:
                 self.handle_activation_by_point()
                 self.blink_fired = True
             return
@@ -205,120 +169,43 @@ class TextInputWidget(GazeWidget):
             self.is_blinking = False
             self.blink_fired = False
 
+    # ------------------------------------------------------------------ input actions
+
     def append_char(self, ch: str) -> None:
-        """
-        Append a character to the current text.
-
-        Parameters
-        ----------
-        ch : str
-            Character to append (use " " for space).
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - Increments `log_toggles`.
-        - Emits a beep.
-        """
         self.log_toggles += 1
         self.current_text += ch
         QApplication.beep()
+        self._center_cache_key = None  # invalidate only center content
+        self.update(self.cells["C"])
 
     def backspace(self) -> None:
-        """
-        Remove the last character from the current text.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - Increments `log_backspaces` if a character is removed.
-        - Emits a beep when deletion occurs.
-        """
         if not self.current_text:
             return
         self.current_text = self.current_text[:-1]
         self.log_backspaces += 1
         QApplication.beep()
+        self._center_cache_key = None
+        self.update(self.cells["C"])
 
     def submit(self) -> None:
-        """
-        Submit the current text.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - Emits `submitted` with the full current text.
-        - Emits a beep.
-        """
         QApplication.beep()
         self.submitted.emit(self.current_text)
 
+    # ------------------------------------------------------------------ hit testing
+
     def area_for_point(self, x: int, y: int) -> str | None:
-        """
-        Determine which grid cell contains a given point.
-
-        Parameters
-        ----------
-        x : int
-            X coordinate in widget space.
-        y : int
-            Y coordinate in widget space.
-
-        Returns
-        -------
-        str | None
-            One of "NW","N","NE","W","C","E","SW","S","SE", or None if outside all cells.
-        """
         for key, rect in self.cells.items():
             if rect.contains(x, y):
                 return key
         return None
 
     def handle_activation_by_point(self) -> None:
-        """
-        Trigger activation based on the current gaze point.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - Maps the current gaze to widget space and activates the cell under gaze.
-        """
         gx, gy = self.map_gaze_to_widget()
         if gx is None or gy is None:
             return
-        area = self.area_for_point(int(gx), int(gy))
-        self.handle_activation(area)
+        self.handle_activation(self.area_for_point(int(gx), int(gy)))
 
     def handle_activation(self, area: str | None) -> None:
-        """
-        Dispatch an activation to the appropriate handler depending on current mode.
-
-        Parameters
-        ----------
-        area : str | None
-            Activated cell key.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - In "groups" mode, selects a letter group or triggers backspace/submit.
-        - In "letters" mode, selects a letter or returns back to groups mode.
-        """
         if area is None:
             return
         if self.mode == "groups":
@@ -327,24 +214,9 @@ class TextInputWidget(GazeWidget):
             self.handle_letters_activation(area)
 
     def handle_groups_activation(self, area: str) -> None:
-        """
-        Handle activation events while in "groups" mode.
+        old_mode = self.mode
+        old_group = self.current_group_index
 
-        Parameters
-        ----------
-        area : str
-            Activated cell key.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - N/W/E/S enter "letters" mode for group indices 0..3.
-        - SW triggers backspace.
-        - SE triggers submit.
-        """
         if area == "N":
             self._emit_click("group:0(A-G)")
             self.current_group_index = 0
@@ -372,29 +244,19 @@ class TextInputWidget(GazeWidget):
             self._emit_click("submit")
             self.submit()
 
+        # mode switch invalidates mode cache + center cache
+        if self.mode != old_mode or self.current_group_index != old_group:
+            self._mode_cache_key = None
+            self._center_cache_key = None
+
         self.update()
 
     def handle_letters_activation(self, area: str) -> None:
-        """
-        Handle activation events while in "letters" mode.
-
-        Parameters
-        ----------
-        area : str
-            Activated cell key.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - N = BACK to groups mode.
-        - Letter slots are: ["NW","NE","W","E","SW","S","SE"] mapped to the group's string.
-        - After choosing a letter, returns to "groups" mode.
-        """
         if self.current_group_index is None:
             self.mode = "groups"
+            self._mode_cache_key = None
+            self._center_cache_key = None
+            self.update()
             return
 
         letters = self.groups[self.current_group_index]
@@ -404,6 +266,8 @@ class TextInputWidget(GazeWidget):
             self.mode = "groups"
             self.current_group_index = None
             QApplication.beep()
+            self._mode_cache_key = None
+            self._center_cache_key = None
             self.update()
             return
 
@@ -416,34 +280,17 @@ class TextInputWidget(GazeWidget):
                 self._emit_click("char:SPACE" if char_to_add == " " else f"char:{char_to_add}")
                 self.append_char(char_to_add)
 
+        # after selection, back to groups
         self.mode = "groups"
         self.current_group_index = None
+        self._mode_cache_key = None
+        self._center_cache_key = None
         self.update()
 
+    # ------------------------------------------------------------------ dwell
+
     def update_dwell(self, x: int, y: int) -> None:
-        """
-        Update dwell detection state from the current gaze position.
-
-        Parameters
-        ----------
-        x : int
-            Gaze x-coordinate in widget space.
-        y : int
-            Gaze y-coordinate in widget space.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - If gaze moves to a new cell, the dwell timer restarts.
-        - Progress stays at 0 during `dwell_grace_ms`, then linearly fills until
-          `dwell_threshold_ms`.
-        - When threshold is reached, triggers activation and resets progress.
-        """
         area = self.area_for_point(x, y)
-
         if area is None:
             self.dwell_area = None
             self.dwell_progress = 0.0
@@ -453,20 +300,17 @@ class TextInputWidget(GazeWidget):
             self.dwell_area = area
             self.dwell_progress = 0.0
             self.dwell_timer.start()
-            self.update()
+            self.update(self._dwell_bar_rect(area))
             return
 
         elapsed = self.dwell_timer.elapsed()
 
         if elapsed < self.dwell_grace_ms:
             self.dwell_progress = 0.0
-            self.update()
+            self.update(self._dwell_bar_rect(area))
             return
 
-        effective = self.dwell_threshold_ms - self.dwell_grace_ms
-        if effective <= 1:
-            effective = 1
-
+        effective = max(1, self.dwell_threshold_ms - self.dwell_grace_ms)
         self.dwell_progress = max(0.0, min(1.0, (elapsed - self.dwell_grace_ms) / effective))
 
         if elapsed >= self.dwell_threshold_ms:
@@ -474,190 +318,268 @@ class TextInputWidget(GazeWidget):
             self.dwell_timer.start()
             self.dwell_progress = 0.0
 
-        self.update()
+        self.update(self._dwell_bar_rect(area))
 
-    def draw_dwell_bar(self, painter: QPainter, area_key: str) -> None:
-        """
-        Draw the dwell progress bar for a cell.
-
-        Parameters
-        ----------
-        painter : QPainter
-            Active painter used for drawing.
-        area_key : str
-            Cell key for which to draw the bar.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - Only draws in dwell mode, and only for the currently active dwell cell.
-        - Bar width is proportional to `dwell_progress`.
-        """
-        if self.activation_mode != "dwell":
-            return
-        if self.dwell_area != area_key:
-            return
-        if self.dwell_progress <= 0.0:
-            return
-
+    def _dwell_bar_rect(self, area_key: str) -> QRect:
         rect = self.cells[area_key]
-        bar_height = max(4, rect.height() // 15)
-        bar_width = int(rect.width() * self.dwell_progress)
+        pad = max(10, rect.width() // 18)
+        bar_h = max(4, rect.height() // 16)
+        # plus a bit for rounded corners
+        return QRect(rect.left() + pad - 2, rect.bottom() - bar_h - pad - 2, rect.width() - 2 * pad + 4, bar_h + 6)
 
-        bar_rect = QRect(rect.left(), rect.bottom() - bar_height + 1, bar_width, bar_height)
-        painter.setBrush(QBrush(Qt.white))
-        painter.setPen(Qt.NoPen)
-        painter.drawRect(bar_rect)
+    # ------------------------------------------------------------------ layout
 
-    def paintEvent(self, event):
-        """
-        Paint the complete 3x3 grid UI.
-
-        Parameters
-        ----------
-        event : QPaintEvent
-            Qt paint event (required signature; unused).
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - Computes cell rectangles from the widget size each frame.
-        - Draws either groups-mode or letters-mode content.
-        - Renders the gaze point as a red dot.
-        """
-        painter = QPainter(self)
-        painter.fillRect(self.rect(), Qt.black)
-        painter.setRenderHint(QPainter.Antialiasing, True)
-
+    def _ensure_layout(self):
         w, h = self.width(), self.height()
+        key = (w, h)
+        if self._layout_key == key:
+            return
+
         cell_w = w // 3
         cell_h = h // 3
-
         keys = [
             ["NW", "N", "NE"],
             ["W", "C", "E"],
             ["SW", "S", "SE"],
         ]
+
         for row in range(3):
             for col in range(3):
-                key = keys[row][col]
+                k = keys[row][col]
                 x = col * cell_w
                 y = row * cell_h
                 cw = cell_w if col < 2 else w - 2 * cell_w
                 ch = cell_h if row < 2 else h - 2 * cell_h
-                self.cells[key] = QRect(x, y, cw, ch)
+                self.cells[k] = QRect(x, y, cw, ch)
 
-        font = painter.font()
-        font.setPointSize(20)
-        painter.setFont(font)
+        self._layout_key = key
+        self._mode_cache_key = None
+        self._center_cache_key = None
 
-        painter.setPen(Qt.white)
-        painter.setBrush(Qt.NoBrush)
-        for rect in self.cells.values():
-            painter.drawRect(rect)
+    # ------------------------------------------------------------------ caches
 
-        if self.mode == "groups":
-            self.paint_groups_mode(painter)
-        else:
-            self.paint_letters_mode(painter)
+    def _ensure_scan_tile(self):
+        if self._scan_ready:
+            return
+        pm = QPixmap(8, 6)
+        pm.fill(Qt.transparent)
+        p = QPainter(pm)
+        c = QColor("#0A1030")
+        c.setAlpha(45)
+        p.fillRect(0, 0, 8, 1, c)
+        p.end()
+        self._scan_tile = pm
+        self._scan_ready = True
 
-        if not self.gazePointBlocked:
-            gx, gy = self.map_gaze_to_widget()
-            if gx is not None and gy is not None:
-                painter.setBrush(QBrush(Qt.red))
-                painter.setPen(Qt.NoPen)
-                r = self.point_radius
-                painter.drawEllipse(int(gx) - r, int(gy) - r, 2 * r, 2 * r)
-
-    def paint_groups_mode(self, painter: QPainter) -> None:
-        """
-        Paint the UI content for "groups" mode.
-
-        Parameters
-        ----------
-        painter : QPainter
-            Active painter.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - N/W/E/S show the four letter groups.
-        - SW shows BACKSPACE, SE shows SUBMIT.
-        - Center cell shows prompt and current text.
-        - Draws dwell bars for actionable cells in dwell mode.
-        """
-        painter.setPen(Qt.white)
-        painter.setBrush(Qt.NoBrush)
-
-        painter.drawText(self.cells["N"], Qt.AlignCenter | Qt.TextWordWrap, "A, B, C, D, E, F, G")
-        painter.drawText(self.cells["W"], Qt.AlignCenter | Qt.TextWordWrap, "H, I, J, K, L, M, N")
-        painter.drawText(self.cells["E"], Qt.AlignCenter | Qt.TextWordWrap, "O, P, Q, R, S, T, U")
-        painter.drawText(self.cells["S"], Qt.AlignCenter | Qt.TextWordWrap, "V, W, X, Y, Z, ␣")
-        painter.drawText(self.cells["SW"], Qt.AlignCenter | Qt.TextWordWrap, "BACKSPACE")
-        painter.drawText(self.cells["SE"], Qt.AlignCenter | Qt.TextWordWrap, "SUBMIT")
-
-        c_rect = self.cells["C"]
-        text_rect = c_rect.adjusted(10, 10, -10, -10)
-        painter.drawText(
-            text_rect,
-            Qt.AlignCenter | Qt.TextWordWrap,
-            f"{self.question}\n\n> {self.current_text}",
-        )
-
-        for key in ["N", "W", "E", "S", "SW", "SE"]:
-            self.draw_dwell_bar(painter, key)
-
-    def paint_letters_mode(self, painter: QPainter) -> None:
-        """
-        Paint the UI content for "letters" mode (one selected group).
-
-        Parameters
-        ----------
-        painter : QPainter
-            Active painter.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        - N cell is "BACK" to return to groups.
-        - Letter slots are: ["NW","NE","W","E","SW","S","SE"].
-        - Center cell shows prompt and current text.
-        - Draws dwell bars for actionable cells in dwell mode.
-        """
-        if self.current_group_index is None:
+    def _ensure_background(self):
+        w, h = self.width(), self.height()
+        if self._bg_cache_size == (w, h) and not self._bg_cache.isNull():
             return
 
-        letters = self.groups[self.current_group_index]
-        slots = ["NW", "NE", "W", "E", "SW", "S", "SE"]
+        self._ensure_scan_tile()
 
-        painter.drawText(self.cells["N"], Qt.AlignCenter | Qt.TextWordWrap, "BACK")
+        pm = QPixmap(w, h)
+        pm.fill(Qt.black)
+        p = QPainter(pm)
 
-        for i, key in enumerate(slots):
-            if i >= len(letters):
-                continue
-            ch = letters[i]
-            label = "SPACE" if ch == " " else ch
-            painter.drawText(self.cells[key], Qt.AlignCenter | Qt.TextWordWrap, str(label))
+        grad = QLinearGradient(0, 0, 0, h)
+        grad.setColorAt(0.0, self.theme.bg0)
+        grad.setColorAt(1.0, self.theme.bg1)
+        p.fillRect(pm.rect(), grad)
 
-        c_rect = self.cells["C"]
-        text_rect = c_rect.adjusted(10, 10, -10, -10)
-        painter.drawText(
-            text_rect,
-            Qt.AlignCenter | Qt.TextWordWrap,
-            f"{self.question}\n\n> {self.current_text}",
+        p.drawTiledPixmap(0, 0, w, h, self._scan_tile)
+        p.end()
+
+        self._bg_cache = pm
+        self._bg_cache_size = (w, h)
+
+    def _base_font_for(self, h: int) -> QFont:
+        f = QFont(self.base_font)
+        f.setBold(True)
+        f.setLetterSpacing(QFont.PercentageSpacing, 102)
+        f.setPointSize(max(13, int(h * 0.034)))
+        return f
+
+    def _draw_panel(self, p: QPainter, rect: QRect, accent: QColor):
+        outer = rect.adjusted(10, 10, -10, -10)
+        p.setBrush(self.theme.panel)
+
+        pen = QPen(self.theme.panel_border)
+        pen.setWidth(2)
+        p.setPen(pen)
+        p.drawRoundedRect(QRectF(outer), 16, 16)
+
+        acc = QColor(accent)
+        acc.setAlpha(165)
+        pen2 = QPen(acc)
+        pen2.setWidth(2)
+        p.setPen(pen2)
+        p.drawLine(outer.left() + 14, outer.top() + 12, outer.right() - 14, outer.top() + 12)
+
+    def _ensure_mode_cache(self):
+        self._ensure_layout()
+        w, h = self.width(), self.height()
+        font = self._base_font_for(h)
+        key = (w, h, self.mode, self.current_group_index, font.pointSize())
+        if self._mode_cache_key == key and not self._mode_cache.isNull():
+            return
+
+        pm = QPixmap(w, h)
+        pm.fill(Qt.transparent)
+        p = QPainter(pm)
+        p.setRenderHint(QPainter.Antialiasing, True)
+        p.setRenderHint(QPainter.TextAntialiasing, True)
+
+        # draw 9 panels (center panel drawn too; its text is separate cache)
+        for k, r in self.cells.items():
+            # per-key accent choices
+            if k == "SE":
+                accent = self.theme.submit
+            elif k == "SW":
+                accent = self.theme.backspace
+            elif k == "N" and self.mode == "letters":
+                accent = self.theme.back
+            else:
+                accent = self.theme.neon_violet
+
+            self._draw_panel(p, r, accent)
+
+        p.setFont(font)
+        p.setPen(self.theme.text)
+
+        if self.mode == "groups":
+            # group labels
+            p.drawText(self.cells["N"].adjusted(16, 16, -16, -16), Qt.AlignCenter | Qt.TextWordWrap, "A–G")
+            p.drawText(self.cells["W"].adjusted(16, 16, -16, -16), Qt.AlignCenter | Qt.TextWordWrap, "H–N")
+            p.drawText(self.cells["E"].adjusted(16, 16, -16, -16), Qt.AlignCenter | Qt.TextWordWrap, "O–U")
+            p.drawText(self.cells["S"].adjusted(16, 16, -16, -16), Qt.AlignCenter | Qt.TextWordWrap, "V–Z ␣")
+            p.drawText(self.cells["SW"].adjusted(16, 16, -16, -16), Qt.AlignCenter | Qt.TextWordWrap, "BACKSPACE")
+            p.drawText(self.cells["SE"].adjusted(16, 16, -16, -16), Qt.AlignCenter | Qt.TextWordWrap, "SUBMIT")
+
+        else:
+            # letters mode
+            p.drawText(self.cells["N"].adjusted(16, 16, -16, -16), Qt.AlignCenter | Qt.TextWordWrap, "BACK")
+
+            if self.current_group_index is not None:
+                letters = self.groups[self.current_group_index]
+                slots = ["NW", "NE", "W", "E", "SW", "S", "SE"]
+                # slightly smaller for single chars
+                lf = QFont(font)
+                lf.setPointSize(max(14, int(h * 0.045)))
+                p.setFont(lf)
+
+                for i, key2 in enumerate(slots):
+                    if i >= len(letters):
+                        continue
+                    ch = letters[i]
+                    label = "SPACE" if ch == " " else ch
+                    p.drawText(self.cells[key2].adjusted(16, 16, -16, -16), Qt.AlignCenter, label)
+
+        p.end()
+        self._mode_cache = pm
+        self._mode_cache_key = key
+
+    def _ensure_center_cache(self):
+        self._ensure_layout()
+        w, h = self.width(), self.height()
+        font = self._base_font_for(h)
+        key = (w, h, self.mode, self.current_group_index, self.question, self.current_text, font.pointSize())
+        if self._center_cache_key == key and not self._center_cache.isNull():
+            return
+
+        pm = QPixmap(w, h)
+        pm.fill(Qt.transparent)
+        p = QPainter(pm)
+        p.setRenderHint(QPainter.TextAntialiasing, True)
+
+        c_rect = self.cells["C"].adjusted(10, 10, -10, -10)
+        inner = c_rect.adjusted(16, 16, -16, -16)
+
+        # prompt + text
+        # prompt smaller, input bigger
+        prompt_font = QFont(font)
+        prompt_font.setBold(True)
+        prompt_font.setPointSize(max(12, int(h * 0.022)))
+
+        input_font = QFont(font)
+        input_font.setBold(True)
+        input_font.setPointSize(max(14, int(h * 0.030)))
+
+        # compose a nice layout
+        # We do manual two-block draw to avoid heavy layout engines.
+        p.setPen(self.theme.text_dim)
+        p.setFont(prompt_font)
+        p.drawText(QRectF(inner), Qt.AlignHCenter | Qt.AlignTop | Qt.TextWordWrap, self.question)
+
+        # caret-style current text
+        p.setPen(self.theme.text)
+        p.setFont(input_font)
+        p.drawText(
+            QRectF(inner).adjusted(0, int(inner.height() * 0.35), 0, 0),
+            Qt.AlignHCenter | Qt.AlignTop | Qt.TextWordWrap,
+            f"> {self.current_text}",
         )
 
-        for key in ["N"] + slots:
-            self.draw_dwell_bar(painter, key)
+        p.end()
+        self._center_cache = pm
+        self._center_cache_key = key
+
+    # ------------------------------------------------------------------ drawing overlays
+
+    def _draw_dwell_bar(self, p: QPainter):
+        if self.activation_mode != "dwell":
+            return
+        if self.dwell_area is None or self.dwell_progress <= 0.0:
+            return
+
+        rect = self.cells.get(self.dwell_area)
+        if rect is None:
+            return
+
+        outer = rect.adjusted(10, 10, -10, -10)
+        pad = max(12, outer.width() // 18)
+        bar_h = max(4, outer.height() // 16)
+        full_w = max(1, outer.width() - 2 * pad)
+        fill_w = int(full_w * self.dwell_progress)
+        bar = QRect(outer.left() + pad, outer.bottom() - bar_h - pad + 1, fill_w, bar_h)
+
+        # choose accent by cell
+        if self.dwell_area == "SE":
+            accent = self.theme.submit
+        elif self.dwell_area == "SW":
+            accent = self.theme.backspace
+        elif self.dwell_area == "N" and self.mode == "letters":
+            accent = self.theme.back
+        else:
+            accent = self.theme.neon_cyan
+
+        c = QColor(accent)
+        c.setAlpha(220)
+        p.setPen(Qt.NoPen)
+        p.setBrush(c)
+        p.drawRoundedRect(QRectF(bar), bar_h / 2.0, bar_h / 2.0)
+
+    # ------------------------------------------------------------------ painting
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing, True)
+
+        self._ensure_layout()
+        self._ensure_background()
+        self._ensure_mode_cache()
+        self._ensure_center_cache()
+
+        if not self._bg_cache.isNull():
+            p.drawPixmap(0, 0, self._bg_cache)
+
+        if not self._mode_cache.isNull():
+            p.drawPixmap(0, 0, self._mode_cache)
+
+        if not self._center_cache.isNull():
+            p.drawPixmap(0, 0, self._center_cache)
+
+        self._draw_dwell_bar(p)
+
+        if not self.gazePointBlocked:
+            self._draw_gaze(p)

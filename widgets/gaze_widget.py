@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Slot
-from PySide6.QtGui import QGuiApplication
+import math
+from abc import abstractmethod
+
+from PySide6.QtCore import Slot, QElapsedTimer, Qt, QPointF
+from PySide6.QtGui import QGuiApplication, QPainter, QColor, QFont, QFontDatabase
 from PySide6.QtWidgets import QWidget
 
 
@@ -47,6 +50,9 @@ class GazeWidget(QWidget):
         geom = screen.geometry()
         self.screen_width = geom.width()
         self.screen_height = geom.height()
+
+        self._pulse_timer = QElapsedTimer()
+        self._pulse_timer.start()
 
         self.point_radius = 10
 
@@ -100,3 +106,57 @@ class GazeWidget(QWidget):
         draw_y = (self.gaze_y / self.screen_height) * self.height()
 
         return int(draw_x), int(draw_y)
+
+    def _pulse(self) -> float:
+        t = self._pulse_timer.elapsed() / 1000.0
+        return 0.5 + 0.5 * math.sin(t * 2.0 * math.pi * 0.35)
+
+    def _draw_gaze(self, p: QPainter):
+        gx, gy = self.map_gaze_to_widget()
+        if gx is None or gy is None:
+            return
+
+        p.save()
+        p.setRenderHint(QPainter.Antialiasing, True)
+
+        r = int(self.point_radius)
+        pulse = self._pulse()
+
+        # Minimal halo (cheap)
+        halo = QColor(self.theme.gaze)
+        halo.setAlpha(int(35 + 35 * pulse))
+        p.setPen(Qt.NoPen)
+        p.setBrush(halo)
+        p.drawEllipse(QPointF(gx, gy), r * 2.0, r * 2.0)
+
+        core = QColor(self.theme.gaze)
+        core.setAlpha(235)
+        p.setBrush(core)
+        p.drawEllipse(QPointF(gx, gy), r, r)
+
+        p.restore()
+
+    @abstractmethod
+    def paintEvent(self, event):
+        pass
+
+class NeonTheme:
+    bg0: QColor = QColor("#070A12")
+    bg1: QColor = QColor("#0B1330")
+
+    neon_cyan: QColor = QColor("#66F0FF")
+    neon_pink: QColor = QColor("#FF4FD8")
+    neon_violet: QColor = QColor("#9B7CFF")
+
+    text: QColor = QColor("#EAF2FF")
+    text_dim: QColor = QColor("#B7C7E6")
+
+    panel: QColor = QColor("#0F1838")
+    panel_border: QColor = QColor("#44507A")
+
+    submit: QColor = QColor("#66F0FF")
+    backspace: QColor = QColor("#FF6A6A")
+    back: QColor = QColor("#9B7CFF")
+
+    gaze: QColor = QColor("#FF3B3B")
+
