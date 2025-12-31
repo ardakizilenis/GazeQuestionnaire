@@ -1,4 +1,4 @@
-# Gaze Questionnaire 1.1
+# Gaze Questionnaire 1.2
 
 A research-oriented framework for **gaze-based questionnaires** using **eye tracking**, **blink/dwell activation**, and **smooth pursuit interaction**.  
 The system enables hands-free answering of questionnaires and logs fine-grained interaction data for later analysis.
@@ -35,6 +35,19 @@ This project is intended for **HCI / Eye-Tracking research**, usability studies,
   - JSON export/import
 - **Fullscreen experimental UI**
 - **Kalman-smoothed gaze signal**
+
+---
+
+### ++ New Features in 1.2 ++
+
+- 4 Brand New Themes, that can be applied to your Questionnaire:
+  - Clinical (Bright, Good for Studies and Focus)
+  - Neon (Cyberpunk-inspired Retro Design)
+  - Oled Dark (Dark, Battery Saving)
+  - Retro Terminal (For Debugging, "Hacker"-Style)
+- Brand New Redesign of the Interface
+- Fixing Performance Issues
+- Remove Auto-Save
 
 ---
 
