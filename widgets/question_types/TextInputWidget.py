@@ -63,10 +63,10 @@ class TextInputWidget(GazeWidget):
         self.current_group_index: int | None = None
 
         self.groups: list[str] = [
-            "ABCDEFG",
-            "HIJKLMN",
-            "OPQRSTU",
-            "VWXYZ ",
+            "RTZUFGH",
+            "QWEASDY",
+            "IOPJKLM",
+            "XCVBN ",
         ]
 
         self.is_blinking = False
@@ -445,10 +445,10 @@ class TextInputWidget(GazeWidget):
 
         if self.mode == "groups":
             # group labels
-            p.drawText(self.cells["N"].adjusted(16, 16, -16, -16), Qt.AlignCenter | Qt.TextWordWrap, "A–G")
-            p.drawText(self.cells["W"].adjusted(16, 16, -16, -16), Qt.AlignCenter | Qt.TextWordWrap, "H–N")
-            p.drawText(self.cells["E"].adjusted(16, 16, -16, -16), Qt.AlignCenter | Qt.TextWordWrap, "O–U")
-            p.drawText(self.cells["S"].adjusted(16, 16, -16, -16), Qt.AlignCenter | Qt.TextWordWrap, "V–Z ␣")
+            p.drawText(self.cells["N"].adjusted(16, 16, -16, -16), Qt.AlignCenter | Qt.TextWordWrap, "R T Z U\nF G H")
+            p.drawText(self.cells["W"].adjusted(16, 16, -16, -16), Qt.AlignCenter | Qt.TextWordWrap, "Q W E\nA S D\nY")
+            p.drawText(self.cells["E"].adjusted(16, 16, -16, -16), Qt.AlignCenter | Qt.TextWordWrap, "I O P\nJ K L\nM")
+            p.drawText(self.cells["S"].adjusted(16, 16, -16, -16), Qt.AlignCenter | Qt.TextWordWrap, "X C V B N\n␣")
             p.drawText(self.cells["SW"].adjusted(16, 16, -16, -16), Qt.AlignCenter | Qt.TextWordWrap, "BACKSPACE")
             p.drawText(self.cells["SE"].adjusted(16, 16, -16, -16), Qt.AlignCenter | Qt.TextWordWrap, "SUBMIT")
 

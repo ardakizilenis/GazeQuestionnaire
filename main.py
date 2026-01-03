@@ -131,8 +131,6 @@ def main() -> None:
     window = MainWindow(
         estimator,
         smoother,
-        # None,
-        # None,
         parent=None,
         gazepoint_blocked=load_gazepoint_blocked("questionnaire.json"),
         dwell_threshold=1200,

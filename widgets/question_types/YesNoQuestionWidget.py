@@ -277,7 +277,7 @@ class YesNoQuestionWidget(GazeWidget):
 
         font = QFont(self.base_font)
         font.setBold(True)
-        font.setPointSize(max(14, int(h * 0.04)))
+        font.setPointSize(max(14, int(h * 0.03)))
         p.setFont(font)
         p.setPen(self.theme.text)
 
@@ -300,7 +300,7 @@ class YesNoQuestionWidget(GazeWidget):
         p.drawPixmap(0, 0, self._bg_cache)
 
         w, h = self.width(), self.height()
-        submit_h = int(h * 0.20)
+        submit_h = int(h * 0.3)
         top_h = h - submit_h
 
         self.yes_rect = QRect(0, 0, w // 2, top_h)
@@ -330,6 +330,13 @@ class YesNoQuestionWidget(GazeWidget):
         # labels
         p.setFont(self.base_font)
         p.setPen(self.theme.text)
+
+        # font size for yes/no/submit
+        label_font = QFont(self.base_font)
+        label_font.setBold(True)
+        label_font.setPixelSize(int(self.yes_rect.height() * 0.06))
+        p.setFont(label_font)
+
         p.drawText(self.yes_rect, Qt.AlignCenter, "YES")
         p.drawText(self.no_rect, Qt.AlignCenter, "NO")
         p.drawText(self.submit_rect, Qt.AlignCenter, "SUBMIT")
