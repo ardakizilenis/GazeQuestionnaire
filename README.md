@@ -7,6 +7,46 @@ This project is intended for **HCI / Eye-Tracking research**, usability studies,
 
 ---
 
+## DEMO: Yes/No Question
+
+Yes/No Question with Dwell Time Activation (Dwell 1-2 Seconds to Select) and the clean "Clinical" Theme
+
+-> Applicable with Dwell, Blink and Smooth Pursuit Activation
+
+https://github.com/user-attachments/assets/6a6346c5-a7d4-47cc-814e-0f146814e2f0
+
+---
+
+## DEMO: Multiple Choice Question
+
+Multiple Choice Question with Blink Activation (Blink 0.3 Seconds to Select) and the natural "Forest Mist" Theme
+
+-> Applicable with Dwell, Blink and Smooth Pursuit Activation
+
+https://github.com/user-attachments/assets/6de87051-abfc-47e8-9ca0-41e33bb8687e
+
+---
+
+## DEMO: Text Entry
+
+Simple Text Entry Question with Dwell Time Activation and the Futuristic "Neon" Theme
+
+-> Applicable with Dwell and Blink, not applicable with Smooth Pursuit
+
+https://github.com/user-attachments/assets/f34444c0-2f86-40fe-aa8c-b82dc38489d9
+
+---
+
+## DEMO: Likert Scale Question
+
+Likert Scale Question with Smooth Pursuit Activation (Follow a Target for a short time to select it) and the "Oled Dark" Theme
+
+-> Applicable with Dwell, Blink and Smooth Pursuit Activation
+
+https://github.com/user-attachments/assets/bd031e42-9109-4fa6-bee4-f70e8a2bb2ea
+
+---
+
 ## Features
 
 - **Multiple gaze-based interaction techniques**
@@ -35,30 +75,6 @@ This project is intended for **HCI / Eye-Tracking research**, usability studies,
   - JSON export/import
 - **Fullscreen experimental UI**
 - **Kalman-smoothed gaze signal**
-
----
-
-## DEMO: Yes/No Question with Dwell Time Activation (Theme: Clinical)
-
-https://github.com/user-attachments/assets/6a6346c5-a7d4-47cc-814e-0f146814e2f0
-
----
-
-## DEMO: Multiple Choice Question with Blink Activation (Theme: Forest Mist)
-
-https://github.com/user-attachments/assets/6de87051-abfc-47e8-9ca0-41e33bb8687e
-
----
-
-## DEMO: Text Entry with Dwell Activation (Theme: Neon)
-
-https://github.com/user-attachments/assets/f34444c0-2f86-40fe-aa8c-b82dc38489d9
-
----
-
-## DEMO: Text Entry with Dwell Activation (Theme: Neon)
-
-https://github.com/user-attachments/assets/bd031e42-9109-4fa6-bee4-f70e8a2bb2ea
 
 ---
 
