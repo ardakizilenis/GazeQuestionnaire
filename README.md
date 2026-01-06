@@ -113,14 +113,14 @@ https://github.com/user-attachments/assets/bd031e42-9109-4fa6-bee4-f70e8a2bb2ea
 
 #### 1) Install the Libraries
 
-MacOS:
+MacOS (tested):
 
 ```bash
   chmod +x setup_macos.sh
 ./setup_macos.sh
 ```
 
-Windows:
+Windows (not tested):
 
 ```bash
   .\setup_windows.ps1
