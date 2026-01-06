@@ -1,8 +1,12 @@
 # Project exclude paths
 /env/
+/data/
 notes.txt
+
 # macOS
 .DS_Store
+
 # JetBrains / PyCharm
 .idea/
-/data/
+
+Calibration_Welcome_demo.mov
