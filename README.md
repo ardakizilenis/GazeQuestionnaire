@@ -135,70 +135,143 @@ https://github.com/user-attachments/assets/bd031e42-9109-4fa6-bee4-f70e8a2bb2ea
 
 #### 1) Install the Libraries
 
-MacOS (tested):
+In your terminal, `cd` to the project where you cloned it and execute...
+
+on MacOS (tested):
 
 ```bash
-  chmod +x setup_macos.sh
+chmod +x setup_macos.sh
 ./setup_macos.sh
 ```
 
-Windows (not tested):
+on Windows (not tested):
 
 ```bash
-  .\setup_windows.ps1
+.\setup_windows.ps1
 ```
 
-#### 2) Start the Questionnaire Builder (First Start may take longer than usual)
+#### 2) Activate your virtual environment
+
+In the Terminal, activate your virtual environment:
 
 `
-python tools/questionnaire_builder.py
+source env/bin/activate
 `
-#### 3) Click on the "Load" Button (Second Option in the Top Menu Bar) and navigate to the project root
+#### 3) Check if it was installed correctly
 
-#### 4) Click the `questionnaire.json` file
-
-#### 5) Edit or delete Questions in the Demo File
-
-#### 6) When you are finished, simply close the questionnaire. Your changes will automatically be saved in `questionnaire.json`.
-
-#### 7) Run the questionnaire (First Start may take longer than usual)
+When you type
 
 `
-python main.py
+gq-run --version
+`
+
+in the Terminal, you should see the current version Number.
+
+#### 4) Run the Questionnaire Builder Tool
+
+`
+gq-run --builder
+`
+
+#### 5) CRUD Questionnaires 
+
+Create, Read, Update or Delete the Demo Questionnaire or your own questionnaires.
+>***IMPORTANT***: Save and load your Questionnaire JSONs ALWAYS in and from the `/questionnaires/` folder in the project or they won't execute!
+
+#### 6) Save
+
+Click the Save in the toolbar or press `Ctrl + S` / `command + S` and select `/questionnaires/` as taget folder. **Again, this is important!!**
+
+#### 7) Run the questionnaire
+
+Run your questionnaire like following, without the `.json` ending.
+
+`
+gq-run your_questionnaire
+`
+
+e.g.:
+
+`
+gq-run demo
 `
 
 
 Execution flow:
-- 9-point gaze calibration
-- Kalman-Filter Tuning
-- Fullscreen questionnaire with Questions from the JSON
+- Selected Kalibration Method
+- Selected Filter Method
+- Fullscreen questionnaire with Questions from the JSON Questionnaire
+---
+
+## Project Tree
+
+```bash
+.
+├── /controller
+│   ├── __init__.py
+│   └── main_window.py
+├── /data
+├── /gaze
+│   ├── __init__.py
+│   └── eyetracker_worker.py
+├── /questionnaires
+│   └── demo.json
+├── /tools
+│   ├── __init__.py
+│   ├── questionnaire_builder.py
+│   ├── stylesheets.py
+│   └── themes.py
+├── /widgets
+│   ├── /question_types
+│   │   ├── __init__.py
+│   │   ├── InfoWidget.py
+│   │   ├── LikertScaleQuestionWidget.py
+│   │   ├── MultipleChoiceQuestionWidget.py
+│   │   ├── SmoothPursuit_LikertScaleWidget.py
+│   │   ├── SmoothPursuit_MultipleChoiceWidget
+│   │   ├── SmoothPursuit_YesNoWidget.py
+│   │   ├── TextInputWidget.py
+│   │   └── YesNoQuestionWidget.py
+│   ├── __init__.py
+│   └── gaze_widget.py
+├── .gitignore
+├── gaze_model.pkl
+├── main.py
+├── pyproject.toml
+├── README.md
+├── setup_macos.sh
+└── setup_windows.ps1
+```
+
 ---
 
 ## Logging & Output
 
-Each run creates a new directory:
+Each `run` creates a new directory:
 
->`data/run_YYYYMMDD_HHMMSS/`
->- `gaze_questionnaire_log.csv`
->- `gaze_questionnaire_clicks.csv`
+```bash
+/data
+└── /run_YYYYMMDD_HHMMSS
+    ├── gaze_questionnaire_clicks.csv
+    └── gaze_questionnaire_log.csv
+```
+
+**gaze_questionnaire_clicks.csv**
+
+One line added per Click with following logs:
+
+| `q_index`      | `q_type`      |   `q_activation`  | `q_labels` | `q_toggle_index` |  `q_click_time_no_reset` | `q_click_time` |  `q_toggled_area` |
+|----------------|:-------------:|------------------:|--------------------------------:|-----------------------:|----------------------------------------:|---------------------------:|----------------------------------:|
+| Question Index | Question Type | Activation Method | Labels (of MCQ/Likert) if given | Counts all the Toggles | Click Timer withour resetting per click | Time needed for each click | Toggled Area/Answer when clicking |
+
 
 **gaze_questionnaire_log.csv**
 
-One row per question, including:
-- Question index and type
-- Activation mode
-- Question text
-- Result (stored via repr)
-- Reaction time (seconds)
-- Interaction metrics (toggles, resets, backspaces)
+One line added per Submit with following logs:
 
-**gaze_questionnaire_clicks.csv**
-- Low-level interaction events with timestamps:
-- Question index and type
-- Toggle index
-- Time since question start
-- Time since last click
-- Toggled area or label
+| `question_index` | `question_type` | `activation_mode` |   `question_text` |     `result` |                 `rt_sec` |         `n_toggles` |                              `n_resets` |                                      `n_backspaces` |                                              `calibration` |                                         `filter` |              `dwell_threshold_ms` |              `blink_threshold_ms` |          `gazepoint_blocked` |       `theme` |
+|------------------|:---------------:|------------------:|------------------:|-------------:|-------------------------:|--------------------:|----------------------------------------:|----------------------------------------------------:|-----------------------------------------------------------:|-------------------------------------------------:|----------------------------------:|----------------------------------:|-----------------------------:|--------------:|
+| Question Index   |  Question Type  | Activation Method | Question / Prompt | Answer given | Needed Time per Question | Number of toggles   | Number of Resets (Only Multiple Choice) | Number of Times clicked Backspace (Only Text Input) | Applied Calibration Method (9-point / 5-point / lassijous) | Applied Filter Method (kalman / kde / no-filter) | Applied Dwell Threshold to Select | Applied Blink Threshold to Select | Applied Gazepoint-Block Flag | Applied Theme |
 
 ---
 
@@ -237,4 +310,4 @@ One row per question, including:
 ## License
 
 Intended for academic and research use.
-Please contact the author before any commercial use.
+Please contact the [Author](https://wwww.ardakizilenis.com/contact) before any commercial use.
