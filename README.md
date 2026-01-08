@@ -86,6 +86,11 @@ https://github.com/user-attachments/assets/bd031e42-9109-4fa6-bee4-f70e8a2bb2ea
 
 ---
 
+<img width="1181" height="779" alt="BuilderUI" src="https://github.com/user-attachments/assets/81848ad0-38ca-4907-a20a-90ce3e094d57" />
+
+
+---
+
 ### ++ New Features in 1.3 ++
 
 - Redesigned Questionnaire Builder:
