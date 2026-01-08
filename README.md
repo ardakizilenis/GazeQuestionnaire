@@ -222,7 +222,6 @@ One row per question, including:
 - Obtain ethical approval before running studies with human participants.
 - Inform participants about eye tracking, recording, and data handling.
 - For synchronization, consider screen and/or audio recording (e.g., OBS).
-- The framework is intended for controlled experimental environments.
 
 ---
 
