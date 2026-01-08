@@ -8,7 +8,7 @@
   "dwell_time": 1000,
   "blink_time": 300,
   "gazepoint_blocked": false,
-  "theme": "forest_mist",
+  "theme": "clinical",
   "items": [
     {
       "type": "info",
