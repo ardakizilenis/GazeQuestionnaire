@@ -1,6 +1,6 @@
 # Gaze Questionnaire 1.3
 
-A research-oriented framework for **gaze-based questionnaires** using **eye tracking**, **blink/dwell activation**, and **smooth pursuit interaction**.  
+A research-oriented application for **gaze-based questionnaires** using **eye tracking**, **blink/dwell activation**, and **smooth pursuit interaction**.  
 The system enables hands-free answering of questionnaires and logs fine-grained interaction data for later analysis.
 
 This project is intended for **HCI / Eye-Tracking research**, usability studies, and experimental evaluation of alternative input modalities.
