@@ -98,11 +98,7 @@ class LikertScaleQuestionWidget(GazeWidget):
         self._scan_tile = QPixmap()
         self._scan_ready = False
 
-        self._static_ui_cache = QPixmap()   # panels + labels + question text (non-animated)
-        self._static_ui_key = None          # (w,h,question,labels,font_size)
-        self._layout_key = None             # (w,h)
-
-        # Small update optimization for gaze trails
+        self._static_ui_cache = QPixmap()
         self._last_gaze_rect = None
 
         self.setAttribute(Qt.WA_OpaquePaintEvent, True)
@@ -353,7 +349,6 @@ class LikertScaleQuestionWidget(GazeWidget):
         p.setRenderHint(QPainter.Antialiasing, True)
         p.setRenderHint(QPainter.TextAntialiasing, True)
 
-        # helper: draw neon panel
         def draw_panel(rect: QRect, accent: QColor, title: str | None = None, title_font: QFont | None = None):
             outer = rect.adjusted(10, 10, -10, -10)
             p.setBrush(self.theme.panel)
@@ -363,7 +358,6 @@ class LikertScaleQuestionWidget(GazeWidget):
             p.setPen(border)
             p.drawRoundedRect(QRectF(outer), 14, 14)
 
-            # accent top line (subtle)
             acc = QColor(accent)
             acc.setAlpha(160)
             pen = QPen(acc)
@@ -376,7 +370,6 @@ class LikertScaleQuestionWidget(GazeWidget):
                 p.setFont(title_font or font)
                 p.drawText(outer, Qt.AlignCenter, title)
 
-        # Left option panels with labels
         opt_font = QFont(font)
         opt_font.setBold(True)
         opt_font.setPointSize(max(11, int(h * 0.030)))
@@ -384,11 +377,9 @@ class LikertScaleQuestionWidget(GazeWidget):
         for i, rect in enumerate(self.option_rects):
             draw_panel(rect, self.theme.neon_violet, title=str(self.labels[i]), title_font=opt_font)
 
-        # Right side: question panel + submit panel
         draw_panel(self.question_rect, self.theme.neon_cyan, title=None)
         draw_panel(self.submit_rect, self.theme.submit, title="SUBMIT", title_font=font)
 
-        # Question text inside question_rect (glow-lite, cached once)
         q_outer = self.question_rect.adjusted(10, 10, -10, -10)
         q_inner = q_outer.adjusted(18, 18, -18, -18)
 
@@ -397,7 +388,6 @@ class LikertScaleQuestionWidget(GazeWidget):
         q_font.setPointSize(max(12, int(h * 0.030)))
         p.setFont(q_font)
 
-        # very light glow (only once, cached)
         glow = QColor(self.theme.neon_cyan)
         glow.setAlpha(60)
         p.setPen(glow)
@@ -414,7 +404,6 @@ class LikertScaleQuestionWidget(GazeWidget):
     # ------------------------------------------------------------------ drawing
 
     def _draw_selection_overlay(self, p: QPainter):
-        """Draw selection highlight (fast, per frame) on top of cached UI."""
         if self.selected_index is None:
             return
 
@@ -483,13 +472,11 @@ class LikertScaleQuestionWidget(GazeWidget):
         self._ensure_background()
         self._ensure_static_ui_cache()
 
-        # Background + static UI
         if not self._bg_cache.isNull():
             p.drawPixmap(0, 0, self._bg_cache)
         if not self._static_ui_cache.isNull():
             p.drawPixmap(0, 0, self._static_ui_cache)
 
-        # Dynamic overlays
         self._draw_selection_overlay(p)
         self._draw_dwell_bar(p)
 

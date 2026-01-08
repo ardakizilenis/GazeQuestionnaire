@@ -5,10 +5,10 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QSize, Signal
 from PySide6.QtGui import QAction, QFont, QColor, QPainter
 from PySide6.QtWidgets import (
-    QApplication,QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QListWidget, QListWidgetItem, QTextEdit, QComboBox, QSpinBox,
     QFileDialog, QMessageBox, QFormLayout, QDialog, QDialogButtonBox,
-    QLabel, QToolBar, QStyle, QStyledItemDelegate, QCheckBox
+    QLabel, QToolBar, QStyle, QStyledItemDelegate, QCheckBox, QGroupBox, QSizePolicy
 )
 
 from themes import TYPE_COLOR_THEMES
@@ -56,6 +56,16 @@ THEME_REGISTRY = {
 
 QUESTION_TYPES = ["info", "yesno", "mcq", "likert", "textgrid", "sp_yesno", "sp_mcq", "sp_likert"]
 ACTIVATIONS = ["dwell", "blink"]
+
+CALIBRATIONS = ["9-point", "5-point", "lissajous"]
+DEFAULT_CALIBRATION = "9-point"
+
+FILTERS = ["kalman", "kde", "no-filter"]
+DEFAULT_FILTER = "kalman"
+
+DEFAULT_DWELL_TIME = 600   # ms
+DEFAULT_BLINK_TIME = 300  # ms
+
 BUILDER_THEMES = list(THEME_REGISTRY.keys())
 THEME_NAMES = [THEME_REGISTRY[k]["label"] for k in BUILDER_THEMES]
 DEFAULT_THEME = "clinical"
@@ -124,19 +134,13 @@ class CardItemDelegate(QStyledItemDelegate):
 
         bg = QColor(c["bg"])
         fg = QColor(c["fg"])
-        accent = QColor(c["accent"])
+        QColor(c["accent"])
 
         painter.setRenderHint(QPainter.Antialiasing, True)
 
         # Card background + border
         painter.setBrush(bg)
         painter.drawRoundedRect(r, 10, 10)
-
-        # Accent stripe (left)
-        stripe = r.adjusted(0, 0, -r.width() + 6, 0)
-        painter.setPen(Qt.NoPen)
-        painter.setBrush(accent)
-        painter.drawRoundedRect(stripe, 10, 10)
 
         # Text
         text = index.data(Qt.DisplayRole) or ""
@@ -259,14 +263,19 @@ class ItemEditorDialog(QDialog):
 
 # ------------------ Main Window ------------------
 
+
 class BuilderMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.resize(1120, 680)
+        self.resize(1150, 700)
+        self.setWindowTitle("GazeQuestionnaire")
 
         self.items: list[dict] = []
         self.current_path: Path | None = None
         self.gazepoint_blocked: bool = False
+
+        self.calibration: str = DEFAULT_CALIBRATION
+        self.filter: str = DEFAULT_FILTER
 
         self.theme = DEFAULT_THEME
         apply_theme(QApplication.instance(), self.theme)
@@ -277,54 +286,133 @@ class BuilderMainWindow(QMainWindow):
         self.statusBar().showMessage("Ready")
 
     # ---------- UI ----------
+    
+
     def _build_toolbar(self):
         tb = QToolBar("Main")
-        tb.setIconSize(QSize(20, 20))
-        self.addToolBar(tb)
+        tb.setIconSize(QSize(17, 17))
+        tb.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
 
+        self.addToolBar(tb)
         st = self.style()
 
-        self.act_new = QAction(st.standardIcon(QStyle.SP_FileIcon), "New (CTRL + N)", self)
-        self.act_open = QAction(st.standardIcon(QStyle.SP_DialogOpenButton), "Open (CTRL + O)", self)
-        self.act_save = QAction(st.standardIcon(QStyle.SP_DialogSaveButton), "Save (CTRL + S)", self)
-        self.act_add = QAction(st.standardIcon(QStyle.SP_FileDialogNewFolder), "Add (CTRL + A)", self)
-        self.act_edit = QAction(st.standardIcon(QStyle.SP_DesktopIcon), "Edit (CTRL + E)", self)
-        self.act_del = QAction(st.standardIcon(QStyle.SP_TrashIcon), "Delete (Backspace)", self)
-
-        self.act_new.setShortcut("Ctrl+N")
-        self.act_open.setShortcut("Ctrl+O")
-        self.act_save.setShortcut("Ctrl+S")
+        # -------- Add --------
+        self.act_add = QAction(
+            st.standardIcon(QStyle.SP_FileDialogNewFolder),
+            "Add",
+            self
+        )
+        self.act_add.setToolTip("Add New Question (Ctrl+A)")
         self.act_add.setShortcut("Ctrl+A")
+
+        # -------- New --------
+        self.act_new = QAction(
+            st.standardIcon(QStyle.SP_FileIcon),
+            "New",
+            self
+        )
+        self.act_new.setToolTip("New File / Reset (Ctrl+N)")
+        self.act_new.setShortcut("Ctrl+N")
+
+        # -------- Open --------
+        self.act_open = QAction(
+            st.standardIcon(QStyle.SP_DialogOpenButton),
+            "Open",
+            self
+        )
+        self.act_open.setToolTip("Open JSON-File (Ctrl+O)")
+        self.act_open.setShortcut("Ctrl+O")
+
+        # -------- Save --------
+        self.act_save = QAction(
+            st.standardIcon(QStyle.SP_DialogSaveButton),
+            "Save",
+            self
+        )
+        self.act_save.setToolTip("Save JSON-File (Ctrl+S)")
+        self.act_save.setShortcut("Ctrl+S")
+
+        # -------- Edit --------
+        self.act_edit = QAction(
+            st.standardIcon(QStyle.SP_DesktopIcon),
+            "Edit",
+            self
+        )
+        self.act_edit.setToolTip("Edit Question (Ctrl+E)")
         self.act_edit.setShortcut("Ctrl+E")
-        self.act_del.setShortcut("Backspace")
 
+        # -------- Delete --------
+        self.act_del = QAction(
+            st.standardIcon(QStyle.SP_TrashIcon),
+            "Delete",
+            self
+        )
+        self.act_del.setToolTip("Delete Question (Backspace)")
+        self.act_del.setShortcut("Ctrl+E")
+
+        # -------- Calibration Box --------
+        self.calibration_box = QComboBox()
+        for key_calibration in CALIBRATIONS:
+            self.calibration_box.addItem(key_calibration, key_calibration)
+        self.calibration_box.currentIndexChanged.connect(self.on_calibration_changed)
+
+        # -------- Filter Box --------
+        self.filter_box = QComboBox()
+        for key_filter in FILTERS:
+            self.filter_box.addItem(key_filter, key_filter)
+        self.filter_box.currentIndexChanged.connect(self.on_filter_changed)
+
+        self.dwell_time: int = DEFAULT_DWELL_TIME
+        self.dwell_spin = QSpinBox()
+        self.dwell_spin.setRange(750, 6000)
+        self.dwell_spin.setSingleStep(50)
+        self.dwell_spin.setSuffix(" ms")
+        self.dwell_spin.setValue(self.dwell_time)
+        self.dwell_spin.valueChanged.connect(self.on_dwell_changed)
+
+        self.blink_time: int = DEFAULT_BLINK_TIME
+        self.blink_spin = QSpinBox()
+        self.blink_spin.setRange(50, 2000)
+        self.blink_spin.setSingleStep(50)
+        self.blink_spin.setSuffix(" ms")
+        self.blink_spin.setValue(self.blink_time)
+        self.blink_spin.valueChanged.connect(self.on_blink_changed)
+
+        # -------- Theme Box --------
         self.theme_box = QComboBox()
-        for key in BUILDER_THEMES:
-            label = THEME_NAMES[BUILDER_THEMES.index(key)]
-            self.theme_box.addItem(label, key)
-
+        for key_theme in BUILDER_THEMES:
+            label = THEME_NAMES[BUILDER_THEMES.index(key_theme)]
+            self.theme_box.addItem(label, key_theme)
         i = self.theme_box.findData(self.theme)
         if i >= 0:
             self.theme_box.setCurrentIndex(i)
-
         self.theme_box.currentIndexChanged.connect(self.on_theme_changed)
 
-        self.cb_gazepoint = QCheckBox("Block Gazepoint?")
+        # -------- Gazepoint Checkpoint --------
+        self.cb_gazepoint = QCheckBox("Hide GP?")
         self.cb_gazepoint.setChecked(self.gazepoint_blocked)
+        self.cb_gazepoint.setObjectName("CBCheckbox")
         self.cb_gazepoint.toggled.connect(self.on_gazepoint_blocked_changed)
 
-        tb.addAction(self.act_new)
-        tb.addAction(self.act_open)
-        tb.addAction(self.act_save)
-        tb.addSeparator()
         tb.addAction(self.act_add)
         tb.addAction(self.act_edit)
         tb.addAction(self.act_del)
         tb.addSeparator()
-        tb.addWidget(QLabel("Theme:"))
-        tb.addWidget(self.theme_box)
+        tb.addAction(self.act_open)
+        tb.addAction(self.act_save)
+        tb.addAction(self.act_new)
+        tb.addSeparator()
+        tb.addWidget(QLabel("CAL:"))
+        tb.addWidget(self.calibration_box)
+        tb.addWidget(QLabel("FIL:"))
+        tb.addWidget(self.filter_box)
+        tb.addWidget(QLabel("Dwell:"))
+        tb.addWidget(self.dwell_spin)
+        tb.addWidget(QLabel("Blink:"))
+        tb.addWidget(self.blink_spin)
         tb.addSeparator()
         tb.addWidget(self.cb_gazepoint)
+        tb.addWidget(self.theme_box)
 
         self.act_new.triggered.connect(self.new_json)
         self.act_open.triggered.connect(self.load_json)
@@ -349,7 +437,7 @@ class BuilderMainWindow(QMainWindow):
 
         left = QVBoxLayout()
         left.addWidget(QLabel("Items"))
-        left.addWidget(self.list_widget)
+        left.addWidget(self.list_widget, 1)
 
         right = QVBoxLayout()
         right.addWidget(QLabel("JSON Preview"))
@@ -390,18 +478,74 @@ class BuilderMainWindow(QMainWindow):
         i = order.index(self.theme) if self.theme in order else 0
         self.set_theme(order[(i + 1) % len(order)])
 
-    def on_theme_changed(self, _index: int):
-        theme_key = self.theme_box.currentData()
-        if not theme_key:
-            theme_key = "clinical"
-        self.set_theme(theme_key)
+    def set_calibration(self, calibration_key: str, *, update_combo: bool = True, show_status: bool = True):
+        if calibration_key not in CALIBRATIONS:
+            calibration_key = DEFAULT_CALIBRATION
+        if calibration_key == self.calibration:
+            return
+
+        self.calibration = calibration_key
+
+        if update_combo and hasattr(self, "calibration_box"):
+            self.calibration_box.blockSignals(True)
+            i = self.calibration_box.findData(self.calibration)
+            if i >= 0:
+                self.calibration_box.setCurrentIndex(i)
+            self.calibration_box.blockSignals(False)
+
+        self.refresh()
+        if show_status:
+            self.statusBar().showMessage(f"Calibration: {self.calibration}", 1200)
+
+    def set_filter(self, filter_key: str, *, update_combo: bool = True, show_status: bool = True):
+        if filter_key not in FILTERS:
+            filter_key = DEFAULT_FILTER
+        if filter_key == self.filter:
+            return
+
+        self.filter = filter_key
+
+        if update_combo and hasattr(self, "filter_box"):
+            self.filter_box.blockSignals(True)
+            i = self.filter_box.findData(self.filter)
+            if i >= 0:
+                self.filter_box.setCurrentIndex(i)
+            self.filter_box.blockSignals(False)
+
+        self.refresh()
+        if show_status:
+            self.statusBar().showMessage(f"Filter: {self.filter}", 1200)
+
+    def set_dwell_time(self, value: int, *, update_spin: bool = True):
+        self.dwell_time = int(value)
+
+        if update_spin and hasattr(self, "dwell_spin"):
+            self.dwell_spin.blockSignals(True)
+            self.dwell_spin.setValue(self.dwell_time)
+            self.dwell_spin.blockSignals(False)
+
+        self.refresh()
+
+    def set_blink_time(self, value: int, *, update_spin: bool = True):
+        self.blink_time = int(value)
+
+        if update_spin and hasattr(self, "blink_spin"):
+            self.blink_spin.blockSignals(True)
+            self.blink_spin.setValue(self.blink_time)
+            self.blink_spin.blockSignals(False)
+
+        self.refresh()
 
     # ---------- core ----------
     def doc(self) -> dict:
         return {
             "meta": {"title": "Gaze Questionnaire", "version": 1},
-            "theme": self.theme,
+            "calibration": self.calibration,
+            "filter": self.filter,
+            "dwell_time": self.dwell_time,
+            "blink_time": self.blink_time,
             "gazepoint_blocked": self.gazepoint_blocked,
+            "theme": self.theme,
             "items": self.items,
         }
 
@@ -446,6 +590,20 @@ class BuilderMainWindow(QMainWindow):
             self.cb_gazepoint.setChecked(bool(self.gazepoint_blocked))
             self.cb_gazepoint.blockSignals(False)
 
+        if hasattr(self, "calibration_box"):
+            self.calibration_box.blockSignals(True)
+            i = self.calibration_box.findData(self.calibration)
+            if i >= 0:
+                self.calibration_box.setCurrentIndex(i)
+            self.calibration_box.blockSignals(False)
+
+        if hasattr(self, "filter_box"):
+            self.filter_box.blockSignals(True)
+            i = self.filter_box.findData(self.filter)
+            if i >= 0:
+                self.filter_box.setCurrentIndex(i)
+            self.filter_box.blockSignals(False)
+
         if hasattr(self, "theme_box"):
             self.theme_box.blockSignals(True)
             i = self.theme_box.findData(self.theme)
@@ -468,7 +626,31 @@ class BuilderMainWindow(QMainWindow):
     def on_gazepoint_blocked_changed(self, checked: bool):
         self.gazepoint_blocked = bool(checked)
         self.refresh()
-        self.statusBar().showMessage(f"Blocked Gazepoint: {self.gazepoint_blocked}", 1500)
+        self.statusBar().showMessage(f"Hide Gazepoint: {self.gazepoint_blocked}", 1500)
+
+    def on_dwell_changed(self, value: int):
+        self.set_dwell_time(value, update_spin=False)
+        self.statusBar().showMessage(f"Dwell Threshold: {self.dwell_time}", 1500)
+
+    def on_blink_changed(self, value: int):
+        self.set_blink_time(value, update_spin=False)
+        self.statusBar().showMessage(f"Blink Threshold: {self.blink_time}", 1500)
+
+    def on_theme_changed(self, _index: int):
+        theme_key = self.theme_box.currentData()
+        if not theme_key:
+            theme_key = "clinical"
+        self.set_theme(theme_key)
+
+    def on_calibration_changed(self, _index: int):
+        calibration_key = self.calibration_box.currentData()
+        self.set_calibration(calibration_key or DEFAULT_CALIBRATION)
+        self.statusBar().showMessage(f"Calibration: {self.calibration}", 1500)
+
+    def on_filter_changed(self, _index: int):
+        filter_key = self.filter_box.currentData()
+        self.set_filter(filter_key or DEFAULT_FILTER)
+        self.statusBar().showMessage(f"Filter: {self.filter}", 1500)
 
     # ---------- actions ----------
     def add_item(self):
@@ -542,6 +724,10 @@ class BuilderMainWindow(QMainWindow):
         self.gazepoint_blocked = bool(gp)
 
         self.set_theme(data.get("theme", DEFAULT_THEME), show_status=False)
+        self.set_calibration(data.get("calibration", DEFAULT_CALIBRATION), show_status=False)
+        self.set_filter(data.get("filter", DEFAULT_FILTER), show_status=False)
+        self.set_dwell_time(int(data.get("dwell_time", DEFAULT_DWELL_TIME)))
+        self.set_blink_time(int(data.get("blink_time", DEFAULT_BLINK_TIME)))
 
         self.items = items
         self.current_path = Path(path)

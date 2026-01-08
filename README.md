@@ -1,4 +1,4 @@
-# Gaze Questionnaire 1.2
+# Gaze Questionnaire 1.3
 
 A research-oriented framework for **gaze-based questionnaires** using **eye tracking**, **blink/dwell activation**, and **smooth pursuit interaction**.  
 The system enables hands-free answering of questionnaires and logs fine-grained interaction data for later analysis.
@@ -68,19 +68,36 @@ https://github.com/user-attachments/assets/bd031e42-9109-4fa6-bee4-f70e8a2bb2ea
 - **Detailed logging**
   - Per-question response times
   - Toggle / reset / backspace counts
-  - Per-click timestamps (high-resolution)
+  - Per-click timestamps
+  - activation method
+  - question type
+  - theme
+  - dwell- and blinktime
+  - filter method
+  - calibration method
 - **Questionnaire Builder GUI**
   - Create and edit questionnaires visually
+  - Decide dwell and blink time for your surveys
+  - Decide activation and filter method
+  - Toggle the Gaze Point on/off
   - Drag & drop reordering
   - JSON export/import
-- **Fullscreen experimental UI**
-- **Kalman-smoothed gaze signal**
+- **Fullscreen UI with 7 different Themes**
+
+---
+
+### ++ New Features in 1.3 ++
+
+- Redesigned Questionnaire Builder:
+  - Choose from different Callibration Methods (9-point, 5-point, lissajous) and Filters (kalman, kde, no filter) and apply them on your Questionnaire
+  - Decide about Dwell (Grace Time: 0.7ms) and Blink Time
+  - Move the toolbar freely
 
 ---
 
 ### ++ New Features in 1.2 ++
 
-- 7 Brand New Themes, that can be applied to your Questionnaire:
+- 7 New Themes, that can be applied to your Questionnaire:
   - Clinical (Bright, Good for Studies and Focus)
   - Neon (Cyberpunk-inspired Retro Design)
   - Oled Dark (Dark, Battery Saving)

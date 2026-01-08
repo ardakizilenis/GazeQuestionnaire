@@ -3,8 +3,12 @@
     "title": "Gaze Questionnaire",
     "version": 1
   },
-  "theme": "clinical",
+  "calibration": "9-point",
+  "filter": "kde",
+  "dwell_time": 1000,
+  "blink_time": 300,
   "gazepoint_blocked": false,
+  "theme": "forest_mist",
   "items": [
     {
       "type": "info",
