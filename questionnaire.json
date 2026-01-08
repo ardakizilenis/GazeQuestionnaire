@@ -4,8 +4,8 @@
     "version": 1
   },
   "calibration": "9-point",
-  "filter": "kde",
-  "dwell_time": 1000,
+  "filter": "kalman",
+  "dwell_time": 1500,
   "blink_time": 300,
   "gazepoint_blocked": false,
   "theme": "clinical",
