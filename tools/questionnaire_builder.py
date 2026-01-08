@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import json
 from pathlib import Path
 
@@ -11,8 +12,8 @@ from PySide6.QtWidgets import (
     QLabel, QToolBar, QStyle, QStyledItemDelegate, QCheckBox, QGroupBox, QSizePolicy
 )
 
-from themes import TYPE_COLOR_THEMES
-from stylesheets import *
+from tools.themes import TYPE_COLOR_THEMES
+from tools.stylesheets import *
 
 # ---- Theme registry (single source of truth) ----
 
@@ -63,8 +64,8 @@ DEFAULT_CALIBRATION = "9-point"
 FILTERS = ["kalman", "kde", "no-filter"]
 DEFAULT_FILTER = "kalman"
 
-DEFAULT_DWELL_TIME = 600   # ms
-DEFAULT_BLINK_TIME = 300  # ms
+DEFAULT_DWELL_TIME = 1000   # ms
+DEFAULT_BLINK_TIME = 400  # ms
 
 BUILDER_THEMES = list(THEME_REGISTRY.keys())
 THEME_NAMES = [THEME_REGISTRY[k]["label"] for k in BUILDER_THEMES]
@@ -689,7 +690,7 @@ class BuilderMainWindow(QMainWindow):
 
     def save_json(self):
         if self.current_path is None:
-            path, _ = QFileDialog.getSaveFileName(self, "Save JSON", "questionnaire.json", "JSON (*.json)")
+            path, _ = QFileDialog.getSaveFileName(self, "Save JSON", "demo.json", "JSON (*.json)")
             if not path:
                 return
             self.current_path = Path(path)
@@ -737,8 +738,11 @@ class BuilderMainWindow(QMainWindow):
 
 # ------------------ main ------------------
 
-if __name__ == "__main__":
+def run():
     app = QApplication([])
     win = BuilderMainWindow()
     win.show()
     app.exec()
+
+if __name__ == "__main__":
+    run()

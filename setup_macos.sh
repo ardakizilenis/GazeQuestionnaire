@@ -9,3 +9,6 @@ pip install eyetrax
 pip uninstall -y mediapipe
 pip uninstall -y mediapipe-silicon mediapipe-rpi 2>/dev/null || true
 pip install mediapipe==0.10.14
+pip install argcomplete
+pip install -e .
+

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json, cv2
 
 from pathlib import Path
@@ -163,5 +164,95 @@ def main(questionnaire: str) -> None:
 
     app.exec()
 
+
+def cli():
+    parser = argparse.ArgumentParser(prog="gq-run")
+
+    parser.add_argument(
+        "name",
+        nargs="?",
+        help="Questionnaire Name (e.g. demo)"
+    )
+    parser.add_argument(
+        "--builder",
+        action="store_true",
+        help="Start Questionnaire Builder (GUI)"
+    )
+    parser.add_argument(
+        "--list",
+        action="store_true",
+        help="List available questionnaires"
+    )
+    parser.add_argument(
+        "--version",
+        action="store_true",
+        help="Show version"
+    )
+
+    base_dir = Path(__file__).resolve().parent
+    questionnaires_dir = base_dir / "questionnaires"
+
+    # ---------- argcomplete ----------
+    try:
+        import argcomplete
+
+        def questionnaire_name_completer(**kwargs):
+            # gibt nur "stems" zurück: demo, study1, ...
+            if questionnaires_dir.exists():
+                return sorted(p.stem for p in questionnaires_dir.glob("*.json"))
+            return []
+
+        # positional "name" Argument finden und Completer anhängen
+        for action in parser._actions:
+            if getattr(action, "dest", None) == "name":
+                action.completer = questionnaire_name_completer
+
+        argcomplete.autocomplete(parser)
+    except ImportError:
+        pass
+    # -------------------------------
+
+    args = parser.parse_args()
+
+    if args.version:
+        # robust: Version aus installiertem Paket (pyproject.toml [project].name)
+        try:
+            from importlib.metadata import version
+            print(version("gazequestionnaire"))
+        except Exception:
+            print("unknown")
+        return
+
+    if args.list:
+        files = sorted(questionnaires_dir.glob("*.json"))
+        if not files:
+            print("No questionnaires found.")
+            return
+        for f in files:
+            print(f.stem)
+        return
+
+    if args.builder:
+        from tools.questionnaire_builder import run as run_builder
+        run_builder()
+        return
+
+    if not args.name:
+        parser.error(
+            "\n\n***************** HELP *****************\n\n"
+            "- `gq-run your_questionnaire` (e.g. `gq-run demo`) : Runs a Questionnaire\n"
+            "- `gq-run --builder` : Runs the Builder (GUI)\n"
+            "- `gq-run --list` : Lists available Questionnaires\n"
+            "- `gq-run --version` : Shows version\n\n"
+            "****************************************\n\n"
+        )
+
+    questionnaire_path = questionnaires_dir / f"{args.name}.json"
+    if not questionnaire_path.exists():
+        parser.error(f"Could not find {questionnaire_path}")
+
+    main(str(questionnaire_path))
+
+
 if __name__ == "__main__":
-    main(questionnaire="questionnaire.json")
+    cli()
