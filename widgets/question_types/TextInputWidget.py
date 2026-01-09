@@ -5,7 +5,7 @@ from PySide6.QtCore import QRect, QRectF, Signal
 from PySide6.QtGui import (
     QLinearGradient,
     QPen,
-    QPixmap,
+    QPixmap, QFont, QFontDatabase,
 )
 from PySide6.QtWidgets import QApplication
 

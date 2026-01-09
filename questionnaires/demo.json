@@ -8,7 +8,7 @@
   "dwell_time": 1200,
   "blink_time": 350,
   "gazepoint_blocked": false,
-  "theme": "clinical",
+  "theme": "oled_dark",
   "items": [
     {
       "type": "info",
@@ -122,14 +122,19 @@
     },
     {
       "duration": 7,
-      "text": "QUESTION 7:\nComplete the sentence in the right order:\n\"He, She, It: ...\"\n(Multiple-Choice)",
+      "text": "QUESTION 7:\nWhich colors do you have to mix to get orange?\n(Multiple-Choice)",
       "type": "info"
     },
     {
       "type": "mcq",
       "text": "Which colors do you have to mix to get orange?",
       "activation": "blink",
-      "labels": []
+      "labels": [
+        "red",
+        "blue",
+        "green",
+        "yellow"
+      ]
     },
     {
       "duration": 7,

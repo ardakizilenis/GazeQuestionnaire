@@ -8,7 +8,7 @@ from PySide6.QtGui import (
     QPainterPath,
     QPen,
     QBrush,
-    QPixmap,
+    QPixmap, QFont, QFontDatabase,
 )
 
 from widgets.gaze_widget import *

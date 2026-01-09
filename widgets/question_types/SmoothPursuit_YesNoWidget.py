@@ -13,7 +13,7 @@ from PySide6.QtGui import (
     QLinearGradient,
     QPen,
     QPixmap,
-    QPainterPath,
+    QPainterPath, QFont, QFontDatabase,
 )
 from PySide6.QtWidgets import QApplication
 

@@ -14,7 +14,7 @@ from PySide6.QtGui import (
     QPen,
     QPolygon,
     QPixmap,
-    QPainterPath,
+    QPainterPath, QFont, QFontDatabase,
 )
 from PySide6.QtWidgets import QApplication
 

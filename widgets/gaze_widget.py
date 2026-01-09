@@ -1,184 +1,141 @@
 # widgets/gaze_widget.py
-
 from __future__ import annotations
 
 import math
-from abc import abstractmethod
 
 from PySide6.QtCore import Slot, QElapsedTimer, Qt, QPointF
-from PySide6.QtGui import QGuiApplication, QPainter, QColor, QFont, QFontDatabase
+from PySide6.QtGui import QPainter, QColor
 from PySide6.QtWidgets import QWidget
 from screeninfo import get_monitors
 
+
+# ----------------------------
+# Screen helper
+# ----------------------------
 
 def get_screen_size():
     m = get_monitors()[0]
     return m.width, m.height
 
-class GazeWidget(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
 
-        self.gaze_x: float | None = None
-        self.gaze_y: float | None = None
+# ----------------------------
+# Base theme
+# ----------------------------
 
-        self.screen_width, self.screen_height = get_screen_size()
-
-        self._pulse_timer = QElapsedTimer()
-        self._pulse_timer.start()
-
-        self.point_radius = 10
-
-    @Slot(float, float)
-    def set_gaze(self, x: float, y: float):
-        self.gaze_x = x
-        self.gaze_y = y
-        self.update()
-
-    def map_gaze_to_widget(self) -> tuple[int | None, int | None]:
-        if self.gaze_x is None or self.gaze_y is None:
-            return None, None
-
-        draw_x = (self.gaze_x / self.screen_width) * self.width()
-        draw_y = (self.gaze_y / self.screen_height) * self.height()
-
-        return int(draw_x), int(draw_y)
-
-    def _pulse(self) -> float:
-        t = self._pulse_timer.elapsed() / 1000.0
-        return 0.5 + 0.5 * math.sin(t * 2.0 * math.pi * 0.35)
-
-    def _draw_gaze(self, p: QPainter):
-        gx, gy = self.map_gaze_to_widget()
-        if gx is None or gy is None:
-            return
-
-        p.save()
-        p.setRenderHint(QPainter.Antialiasing, True)
-
-        r = int(self.point_radius)
-        pulse = self._pulse()
-
-        # Minimal halo
-        halo = QColor(self.theme.gaze)
-        halo.setAlpha(int(35 + 35 * pulse))
-        p.setPen(Qt.NoPen)
-        p.setBrush(halo)
-        p.drawEllipse(QPointF(gx, gy), r * 2.0, r * 2.0)
-
-        core = QColor(self.theme.gaze)
-        core.setAlpha(235)
-        p.setBrush(core)
-        p.drawEllipse(QPointF(gx, gy), r, r)
-
-        p.restore()
-
-    @abstractmethod
-    def paintEvent(self, event):
-        pass
-
-    def matchTheme(self, theme: str):
-        # TODO: Themenerweiterung...
-        match theme:
-            case "neon":
-                self.theme = NeonTheme()
-            case "retro_terminal":
-                self.theme = RetroTerminalTheme()
-            case "clinical":
-                self.theme = ClinicalTheme()
-            case "oled_dark":
-                self.theme = OledDarkTheme()
-            case "sunset_synth":
-                self.theme = SunsetSynthTheme()
-            case "forest_mist":
-                self.theme = ForestMistTheme()
-            case "signal_contrast":
-                self.theme = SignalContrastTheme()
-            case _:
-                self.theme = ClinicalTheme()
-
-class NeonTheme:
-    bg0: QColor = QColor("#070A12")
-    bg1: QColor = QColor("#0B1330")
-    neon_cyan: QColor = QColor("#66F0FF")
-    neon_pink: QColor = QColor("#FF4FD8")
-    neon_violet: QColor = QColor("#9B7CFF")
-    text_dim: QColor = QColor("#B7C7E6")
-    text: QColor = QColor("#EAF2FF")
-    bar_track: QColor = QColor("#1B2546")
-    bar_border: QColor = QColor("#4B5B86")
-    gaze: QColor = QColor("#FF3B3B")
-    panel: QColor = QColor("#0F1838")
-    panel_border: QColor = QColor("#44507A")
-    submit: QColor = QColor("#66F0FF")
-    reset: QColor = QColor("#FF6A6A")
-    option_accent: QColor = QColor("#9B7CFF")
-    orbit: QColor = QColor("#6F7A9E")
-    guide: QColor = QColor("#6F7A9E")
-    selected: QColor = QColor("#39FF9A")
-    highlight: QColor = QColor("#EAF2FF")
-    disabled: QColor = QColor("#7C859E")
-    dot: QColor = QColor("#EAF2FF")
-    backspace: QColor = QColor("#FF6A6A")
-    back: QColor = QColor("#9B7CFF")
-    yes: QColor = QColor("#39FF9A")
-    no: QColor = QColor("#FF5A5A")
-
-class RetroTerminalTheme:
-    bg0: QColor = QColor("#020402")
-    bg1: QColor = QColor("#020402")
-    neon_cyan: QColor = QColor("#7CFF6B")
-    neon_pink: QColor = QColor("#FFD166")
-    neon_violet: QColor = QColor("#6AFF55")
-    text_dim: QColor = QColor("#6BD65E")
-    text: QColor = QColor("#9CFF8A")
-    bar_track: QColor = QColor("#041006")
-    bar_border: QColor = QColor("#2F6B3A")
-    gaze: QColor = QColor("#FFB000")
-    panel: QColor = QColor("#020402")
-    panel_border: QColor = QColor("#2F6B3A")
-    submit: QColor = QColor("#7CFF6B")
-    reset: QColor = QColor("#FFB000")
-    option_accent: QColor = QColor("#6AFF55")
-    orbit: QColor = QColor("#4FAF68")
-    guide: QColor = QColor("#4FAF68")
-    selected: QColor = QColor("#3CFF9E")
-    highlight: QColor = QColor("#9CFF8A")
-    disabled: QColor = QColor("#3E6B48")
-    dot: QColor = QColor("#9CFF8A")
-    backspace: QColor = QColor("#FFB000")
-    back: QColor = QColor("#6AFF55")
-    yes: QColor = QColor("#3CFF9E")
-    no: QColor = QColor("#FFB000")
+class BaseTheme:
+    bg0: QColor
+    bg1: QColor
+    neon_cyan: QColor
+    neon_pink: QColor
+    neon_violet: QColor
+    text_dim: QColor
+    text: QColor
+    bar_track: QColor
+    bar_border: QColor
+    gaze: QColor
+    panel: QColor
+    panel_border: QColor
+    submit: QColor
+    reset: QColor
+    option_accent: QColor
+    orbit: QColor
+    guide: QColor
+    selected: QColor
+    highlight: QColor
+    disabled: QColor
+    dot: QColor
+    backspace: QColor
+    back: QColor
+    yes: QColor
+    no: QColor
 
 
-class ClinicalTheme:
-    bg0: QColor = QColor("#F6F8FB")
-    bg1: QColor = QColor("#FFFFFF")
-    neon_cyan: QColor = QColor("#2563EB")
-    neon_pink: QColor = QColor("#BE185D")
-    neon_violet: QColor = QColor("#7C3AED")
-    text_dim: QColor = QColor("#475569")
-    text: QColor = QColor("#1E293B")
-    bar_track: QColor = QColor("#E2E8F0")
-    bar_border: QColor = QColor("#CBD5E1")
-    gaze: QColor = QColor("#DC2626")
-    panel: QColor = QColor("#FFFFFF")
-    panel_border: QColor = QColor("#CBD5E1")
-    submit: QColor = QColor("#2563EB")
-    reset: QColor = QColor("#DC2626")
-    option_accent: QColor = QColor("#2563EB")
-    orbit: QColor = QColor("#64748B")
-    guide: QColor = QColor("#64748B")
-    selected: QColor = QColor("#059669")
-    highlight: QColor = QColor("#0F172A")
-    disabled: QColor = QColor("#94A3B8")
-    dot: QColor = QColor("#334155")
-    backspace: QColor = QColor("#DC2626")
-    back: QColor = QColor("#2563EB")
-    yes: QColor = QColor("#059669")
-    no: QColor = QColor("#DC2626")
+# ----------------------------
+# Themes (unchanged colors)
+# ----------------------------
 
+class NeonTheme(BaseTheme):
+    bg0 = QColor("#070A12")
+    bg1 = QColor("#0B1330")
+    neon_cyan = QColor("#66F0FF")
+    neon_pink = QColor("#FF4FD8")
+    neon_violet = QColor("#9B7CFF")
+    text_dim = QColor("#B7C7E6")
+    text = QColor("#EAF2FF")
+    bar_track = QColor("#1B2546")
+    bar_border = QColor("#4B5B86")
+    gaze = QColor("#FF3B3B")
+    panel = QColor("#0F1838")
+    panel_border = QColor("#44507A")
+    submit = QColor("#66F0FF")
+    reset = QColor("#FF6A6A")
+    option_accent = QColor("#9B7CFF")
+    orbit = QColor("#6F7A9E")
+    guide = QColor("#6F7A9E")
+    selected = QColor("#39FF9A")
+    highlight = QColor("#EAF2FF")
+    disabled = QColor("#7C859E")
+    dot = QColor("#EAF2FF")
+    backspace = QColor("#FF6A6A")
+    back = QColor("#9B7CFF")
+    yes = QColor("#39FF9A")
+    no = QColor("#FF5A5A")
+
+
+class RetroTerminalTheme(BaseTheme):
+    bg0 = QColor("#020402")
+    bg1 = QColor("#020402")
+    neon_cyan = QColor("#7CFF6B")
+    neon_pink = QColor("#FFD166")
+    neon_violet = QColor("#6AFF55")
+    text_dim = QColor("#6BD65E")
+    text = QColor("#9CFF8A")
+    bar_track = QColor("#041006")
+    bar_border = QColor("#2F6B3A")
+    gaze = QColor("#FFB000")
+    panel = QColor("#020402")
+    panel_border = QColor("#2F6B3A")
+    submit = QColor("#7CFF6B")
+    reset = QColor("#FFB000")
+    option_accent = QColor("#6AFF55")
+    orbit = QColor("#4FAF68")
+    guide = QColor("#4FAF68")
+    selected = QColor("#3CFF9E")
+    highlight = QColor("#9CFF8A")
+    disabled = QColor("#3E6B48")
+    dot = QColor("#9CFF8A")
+    backspace = QColor("#FFB000")
+    back = QColor("#6AFF55")
+    yes = QColor("#3CFF9E")
+    no = QColor("#FFB000")
+
+
+class ClinicalTheme(BaseTheme):
+    bg0 = QColor("#F6F8FB")
+    bg1 = QColor("#FFFFFF")
+    neon_cyan = QColor("#2563EB")
+    neon_pink = QColor("#BE185D")
+    neon_violet = QColor("#7C3AED")
+    text_dim = QColor("#475569")
+    text = QColor("#1E293B")
+    bar_track = QColor("#E2E8F0")
+    bar_border = QColor("#CBD5E1")
+    gaze = QColor("#DC2626")
+    panel = QColor("#FFFFFF")
+    panel_border = QColor("#CBD5E1")
+    submit = QColor("#2563EB")
+    reset = QColor("#DC2626")
+    option_accent = QColor("#2563EB")
+    orbit = QColor("#64748B")
+    guide = QColor("#64748B")
+    selected = QColor("#059669")
+    highlight = QColor("#0F172A")
+    disabled = QColor("#94A3B8")
+    dot = QColor("#334155")
+    backspace = QColor("#DC2626")
+    back = QColor("#2563EB")
+    yes = QColor("#059669")
+    no = QColor("#DC2626")
 
 class OledDarkTheme:
     bg0: QColor = QColor("#000000")
@@ -287,3 +244,76 @@ class SignalContrastTheme:
     back = QColor("#7C4DFF")
     yes = QColor("#00E676")
     no = QColor("#FF1744")
+
+# ----------------------------
+# GazeWidget
+# ----------------------------
+
+class GazeWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.gaze_x: float | None = None
+        self.gaze_y: float | None = None
+
+        self.screen_width, self.screen_height = get_screen_size()
+
+        self._pulse_timer = QElapsedTimer()
+        self._pulse_timer.start()
+
+        self.point_radius = 10
+        self.theme = ClinicalTheme()  # default
+
+    @Slot(float, float)
+    def set_gaze(self, x: float, y: float):
+        self.gaze_x = x
+        self.gaze_y = y
+        self.update()
+
+    def map_gaze_to_widget(self):
+        if self.gaze_x is None or self.gaze_y is None:
+            return None, None
+        return (
+            int((self.gaze_x / self.screen_width) * self.width()),
+            int((self.gaze_y / self.screen_height) * self.height()),
+        )
+
+    def _pulse(self):
+        t = self._pulse_timer.elapsed() / 1000.0
+        return 0.5 + 0.5 * math.sin(t * 2.0 * math.pi * 0.35)
+
+    def _draw_gaze(self, p: QPainter):
+        gx, gy = self.map_gaze_to_widget()
+        if gx is None or gy is None:
+            return
+
+        p.save()
+        p.setRenderHint(QPainter.Antialiasing, True)
+
+        r = self.point_radius
+        pulse = self._pulse()
+
+        halo = QColor(self.theme.gaze)
+        halo.setAlpha(int(35 + 35 * pulse))
+        p.setPen(Qt.NoPen)
+        p.setBrush(halo)
+        p.drawEllipse(QPointF(gx, gy), r * 2, r * 2)
+
+        core = QColor(self.theme.gaze)
+        core.setAlpha(235)
+        p.setBrush(core)
+        p.drawEllipse(QPointF(gx, gy), r, r)
+
+        p.restore()
+
+    def matchTheme(self, theme: str):
+        THEMES = {
+            "neon": NeonTheme,
+            "retro_terminal": RetroTerminalTheme,
+            "clinical": ClinicalTheme,
+            "oled_dark": OledDarkTheme,
+            "sunset_synth": SunsetSynthTheme,
+            "forest_mist": ForestMistTheme,
+            "signal_contrast": SignalContrastTheme,
+        }
+        self.theme = THEMES.get(theme, ClinicalTheme)()
