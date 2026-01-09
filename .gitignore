@@ -1,12 +1,7 @@
-# Project exclude paths
 /env/
 /data/
 notes.txt
-
 /gazequestionnaire.egg-info/
-
-# macOS
+__pycache__
 .DS_Store
-
-# JetBrains / PyCharm
 .idea/
