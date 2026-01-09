@@ -192,7 +192,7 @@ class TextInputWidget(GazeWidget):
         self.handle_activation(self.area_for_point(int(gx), int(gy)))
 
     def handle_activation(self, area: str | None) -> None:
-        if area is None:
+        if area is None or area == "C":
             return
         if self.mode == "groups":
             self.handle_groups_activation(area)
@@ -277,7 +277,7 @@ class TextInputWidget(GazeWidget):
 
     def update_dwell(self, x: int, y: int) -> None:
         area = self.area_for_point(x, y)
-        if area is None:
+        if area is None or area == "C" or (self.mode == "groups" and (area is "NW" or area is "NE")):
             self.dwell_area = None
             self.dwell_progress = 0.0
             return
@@ -310,7 +310,6 @@ class TextInputWidget(GazeWidget):
         rect = self.cells[area_key]
         pad = max(10, rect.width() // 18)
         bar_h = max(4, rect.height() // 16)
-        # plus a bit for rounded corners
         return QRect(rect.left() + pad - 2, rect.bottom() - bar_h - pad - 2, rect.width() - 2 * pad + 4, bar_h + 6)
 
     # ------------------------------------------------------------------ layout
