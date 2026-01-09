@@ -254,5 +254,7 @@ def cli():
 
 
 if __name__ == "__main__":
-    # cli()
-    main("questionnaires/demo.json")
+    cli()
+
+    # ---------- optional ------------
+    # main("questionnaires/demo.json")
