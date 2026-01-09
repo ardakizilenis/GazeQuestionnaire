@@ -1,12 +1,12 @@
 {
   "meta": {
     "title": "Gaze Questionnaire",
-    "version": 1
+    "version": 1.3
   },
   "calibration": "9-point",
   "filter": "kalman",
-  "dwell_time": 1500,
-  "blink_time": 300,
+  "dwell_time": 1200,
+  "blink_time": 350,
   "gazepoint_blocked": false,
   "theme": "clinical",
   "items": [
@@ -126,15 +126,10 @@
       "type": "info"
     },
     {
+      "type": "mcq",
+      "text": "Which colors do you have to mix to get orange?",
       "activation": "blink",
-      "labels": [
-        "muss",
-        "Das",
-        "'s'",
-        "mit"
-      ],
-      "text": "Complete the sentence in the right order:\n\"He, She, It: ...\"\n(Multiple-Choice)",
-      "type": "mcq"
+      "labels": []
     },
     {
       "duration": 7,
