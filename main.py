@@ -14,7 +14,6 @@ from PySide6.QtWidgets import QApplication
 from eyetrax import GazeEstimator
 from eyetrax.calibration import run_5_point_calibration, run_lissajous_calibration, run_9_point_calibration
 from eyetrax.filters import KalmanSmoother, make_kalman, KDESmoother, NoSmoother
-from sklearn.utils._repr_html import estimator
 
 from controller.main_window import MainWindow
 from widgets import gaze_widget

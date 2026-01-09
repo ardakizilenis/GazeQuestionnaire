@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-import argparse
 import json
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QSize, Signal
-from PySide6.QtGui import QAction, QFont, QColor, QPainter
+from PySide6.QtGui import QAction, QFont, QColor, QPainter, QUndoCommand, QUndoStack
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QListWidget, QListWidgetItem, QTextEdit, QComboBox, QSpinBox,
     QFileDialog, QMessageBox, QFormLayout, QDialog, QDialogButtonBox,
-    QLabel, QToolBar, QStyle, QStyledItemDelegate, QCheckBox, QGroupBox, QSizePolicy
+    QLabel, QToolBar, QStyle, QStyledItemDelegate, QCheckBox, QGroupBox, QSizePolicy, QLineEdit
 )
 
 from tools.themes import TYPE_COLOR_THEMES
@@ -135,7 +134,6 @@ class CardItemDelegate(QStyledItemDelegate):
 
         bg = QColor(c["bg"])
         fg = QColor(c["fg"])
-        QColor(c["accent"])
 
         painter.setRenderHint(QPainter.Antialiasing, True)
 
@@ -175,8 +173,21 @@ class ItemEditorDialog(QDialog):
         self.duration_spin.setRange(1, 999)
         self.duration_spin.setValue(5)
 
-        self.labels_edit = QTextEdit()
-        self.labels_edit.setPlaceholderText("One label per line.\nMCQ = 4 lines, Likert = 5 lines.")
+        # ---- Labels as individual inputs (max 5) ----
+        self.labels_group = QGroupBox()
+        self.labels_group.setTitle("Labels")
+        self.labels_group.setVisible(False)
+
+        labels_layout = QVBoxLayout(self.labels_group)
+        labels_layout.setContentsMargins(10, 10, 10, 10)
+        labels_layout.setSpacing(8)
+
+        self.label_edits: list[QLineEdit] = []
+        for i in range(5):
+            le = QLineEdit()
+            le.setPlaceholderText(f"Label {i + 1}")
+            self.label_edits.append(le)
+            labels_layout.addWidget(le)
 
         self.activation_row = QWidget()
         act_layout = QHBoxLayout(self.activation_row)
@@ -189,7 +200,7 @@ class ItemEditorDialog(QDialog):
         form.addRow("Activation", self.activation_row)
         form.addRow("Text", self.text_edit)
         form.addRow("Duration (info)", self.duration_spin)
-        form.addRow("Labels", self.labels_edit)
+        form.addRow(self.labels_group)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self.accept)
@@ -208,7 +219,21 @@ class ItemEditorDialog(QDialog):
     def _update_visibility(self, qtype: str):
         self.duration_spin.setEnabled(qtype == "info")
         self.activation_row.setVisible(qtype not in ("info", "sp_yesno", "sp_mcq", "sp_likert"))
-        self.labels_edit.setEnabled(qtype in ("mcq", "likert", "sp_mcq", "sp_likert"))
+
+        needs_labels = qtype in ("mcq", "likert", "sp_mcq", "sp_likert")
+        self.labels_group.setVisible(needs_labels)
+
+        if not needs_labels:
+            return
+
+        n = 4 if qtype in ("mcq", "sp_mcq") else 5
+
+        for i, le in enumerate(self.label_edits):
+            le.setVisible(i < n)
+
+        for i in range(n):
+            if not self.label_edits[i].text().strip():
+                self.label_edits[i].setText(f"Option {i+1}")
 
     def _load(self, it: dict):
         self.type_box.setCurrentText(it.get("type", "info"))
@@ -217,8 +242,12 @@ class ItemEditorDialog(QDialog):
             self.activation_box.setCurrentText(it["activation"])
         self.duration_spin.setValue(int(it.get("duration", 5) or 5))
         labels = it.get("labels", [])
+        for le in self.label_edits:
+            le.setText("")
+
         if isinstance(labels, list):
-            self.labels_edit.setPlainText("\n".join(str(x) for x in labels))
+            for i, val in enumerate(labels[:5]):
+                self.label_edits[i].setText(str(val))
 
     def get_item(self) -> dict:
         qtype = self.type_box.currentText()
@@ -234,13 +263,13 @@ class ItemEditorDialog(QDialog):
 
         if qtype in ("sp_mcq", "sp_likert"):
             it["activation"] = "smooth_pursuit"
-            it["labels"] = [l.strip() for l in self.labels_edit.toPlainText().splitlines() if l.strip()]
+            it["labels"] = self._collect_labels()
             return it
 
         it["activation"] = self.activation_box.currentText()
 
         if qtype in ("mcq", "likert"):
-            it["labels"] = [l.strip() for l in self.labels_edit.toPlainText().splitlines() if l.strip()]
+            it["labels"] = self._collect_labels()
 
         return it
 
@@ -261,6 +290,97 @@ class ItemEditorDialog(QDialog):
 
         super().accept()
 
+    def _collect_labels(self) -> list[str]:
+        out = []
+        for le in self.label_edits:
+            if le.isVisible():
+                t = le.text().strip()
+                if t:
+                    out.append(t)
+        return out
+
+
+# ------------------ Undo / Redo ------------------
+
+class AddItemCommand(QUndoCommand):
+    def __init__(self, win, item: dict, index: int | None = None):
+        super().__init__()
+        self.win = win
+        self.item = item
+        self.index = index
+
+    def redo(self):
+        if self.index is None or self.index > len(self.win.items):
+            self.win.items.append(self.item)
+            self.index = len(self.win.items) - 1
+        else:
+            self.win.items.insert(self.index, self.item)
+        self.win.refresh()
+        self.win.list_widget.setCurrentRow(self.index)
+
+    def undo(self):
+        if 0 <= self.index < len(self.win.items):
+            del self.win.items[self.index]
+        self.win.refresh()
+
+
+class DeleteItemCommand(QUndoCommand):
+    def __init__(self, win, index: int, item: dict):
+        super().__init__()
+        self.win = win
+        self.index = index
+        self.item = item
+
+    def redo(self):
+        if 0 <= self.index < len(self.win.items):
+            del self.win.items[self.index]
+        self.win.refresh()
+        self.win.list_widget.setCurrentRow(min(self.index, len(self.win.items) - 1))
+
+    def undo(self):
+        if self.index > len(self.win.items):
+            self.index = len(self.win.items)
+        self.win.items.insert(self.index, self.item)
+        self.win.refresh()
+        self.win.list_widget.setCurrentRow(self.index)
+
+
+class EditItemCommand(QUndoCommand):
+    def __init__(self, win, index: int, old_item: dict, new_item: dict):
+        super().__init__()
+        self.win = win
+        self.index = index
+        self.old_item = old_item
+        self.new_item = new_item
+
+    def redo(self):
+        if 0 <= self.index < len(self.win.items):
+            self.win.items[self.index] = self.new_item
+        self.win.refresh()
+        self.win.list_widget.setCurrentRow(self.index)
+
+    def undo(self):
+        if 0 <= self.index < len(self.win.items):
+            self.win.items[self.index] = self.old_item
+        self.win.refresh()
+        self.win.list_widget.setCurrentRow(self.index)
+
+
+class ReorderItemsCommand(QUndoCommand):
+    def __init__(self, win, old_order: list[dict], new_order: list[dict]):
+        super().__init__()
+        self.win = win
+        self.old_order = old_order
+        self.new_order = new_order
+
+    def redo(self):
+        self.win.items = list(self.new_order)
+        self.win.refresh()
+
+    def undo(self):
+        self.win.items = list(self.old_order)
+        self.win.refresh()
+
 
 # ------------------ Main Window ------------------
 
@@ -268,6 +388,7 @@ class ItemEditorDialog(QDialog):
 class BuilderMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.version = 1.3
         self.resize(1150, 700)
         self.setWindowTitle("GazeQuestionnaire")
 
@@ -279,7 +400,10 @@ class BuilderMainWindow(QMainWindow):
         self.filter: str = DEFAULT_FILTER
 
         self.theme = DEFAULT_THEME
+
         apply_theme(QApplication.instance(), self.theme)
+
+        self.undo_stack = QUndoStack(self)
 
         self._build_toolbar()
         self._build_ui()
@@ -349,22 +473,34 @@ class BuilderMainWindow(QMainWindow):
             self
         )
         self.act_del.setToolTip("Delete Question (Backspace)")
-        self.act_del.setShortcut("Ctrl+E")
+        self.act_del.setShortcut("Backspace")
+
+        # -------- Undo / Redo --------
+        self.act_undo = self.undo_stack.createUndoAction(self, "Undo")
+        self.act_undo.setIcon(st.standardIcon(QStyle.SP_ArrowBack))
+        self.act_undo.setShortcut("Ctrl+Z")
+
+        self.act_redo = self.undo_stack.createRedoAction(self, "Redo")
+        self.act_redo.setIcon(st.standardIcon(QStyle.SP_ArrowForward))
+        self.act_redo.setShortcut("Ctrl+Y")
 
         # -------- Calibration Box --------
         self.calibration_box = QComboBox()
+        self.calibration_box.setFixedWidth(90)
         for key_calibration in CALIBRATIONS:
             self.calibration_box.addItem(key_calibration, key_calibration)
         self.calibration_box.currentIndexChanged.connect(self.on_calibration_changed)
 
         # -------- Filter Box --------
         self.filter_box = QComboBox()
+        self.filter_box.setFixedWidth(90)
         for key_filter in FILTERS:
             self.filter_box.addItem(key_filter, key_filter)
         self.filter_box.currentIndexChanged.connect(self.on_filter_changed)
 
         self.dwell_time: int = DEFAULT_DWELL_TIME
         self.dwell_spin = QSpinBox()
+        self.dwell_spin.setFixedWidth(90)
         self.dwell_spin.setRange(750, 6000)
         self.dwell_spin.setSingleStep(50)
         self.dwell_spin.setSuffix(" ms")
@@ -373,6 +509,7 @@ class BuilderMainWindow(QMainWindow):
 
         self.blink_time: int = DEFAULT_BLINK_TIME
         self.blink_spin = QSpinBox()
+        self.blink_spin.setFixedWidth(90)
         self.blink_spin.setRange(50, 2000)
         self.blink_spin.setSingleStep(50)
         self.blink_spin.setSuffix(" ms")
@@ -395,22 +532,70 @@ class BuilderMainWindow(QMainWindow):
         self.cb_gazepoint.setObjectName("CBCheckbox")
         self.cb_gazepoint.toggled.connect(self.on_gazepoint_blocked_changed)
 
+        # -------- CAL/FIL vertical block --------
+        cal_fil = QWidget()
+        cal_fil_l = QVBoxLayout(cal_fil)
+        cal_fil_l.setContentsMargins(0, 0, 0, 0)
+        cal_fil_l.setSpacing(2)
+
+        row1 = QWidget()
+        row1_l = QHBoxLayout(row1)
+        row1_l.setContentsMargins(0, 0, 0, 0)
+        row1_l.setSpacing(6)
+        row1_l.addWidget(QLabel("CAL:"))
+        row1_l.addWidget(self.calibration_box)
+
+        row2 = QWidget()
+        row2_l = QHBoxLayout(row2)
+        row2_l.setContentsMargins(0, 0, 0, 0)
+        row2_l.setSpacing(6)
+        row2_l.addWidget(QLabel("FIL:"))
+        row2_l.addWidget(self.filter_box)
+
+        cal_fil_l.addWidget(row1)
+        cal_fil_l.addWidget(row2)
+
+        # -------- Dwell/Blink vertical block --------
+        dwell_blink = QWidget()
+        dwell_blink_l = QVBoxLayout(dwell_blink)
+        dwell_blink_l.setContentsMargins(0, 0, 0, 0)
+        dwell_blink_l.setSpacing(2)
+
+        row3 = QWidget()
+        row3_l = QHBoxLayout(row3)
+        row3_l.setContentsMargins(0, 0, 0, 0)
+        row3_l.setSpacing(6)
+        row3_l.addWidget(QLabel("Dwell:"))
+        row3_l.addWidget(self.dwell_spin)
+
+        row4 = QWidget()
+        row4_l = QHBoxLayout(row4)
+        row4_l.setContentsMargins(0, 0, 0, 0)
+        row4_l.setSpacing(6)
+        row4_l.addWidget(QLabel("Blink:"))
+        row4_l.addWidget(self.blink_spin)
+
+        dwell_blink_l.addWidget(row3)
+        dwell_blink_l.addWidget(row4)
+
+        # ------------- add toolbar elements here --------------
         tb.addAction(self.act_add)
         tb.addAction(self.act_edit)
         tb.addAction(self.act_del)
+
+        tb.addSeparator()
+        tb.addAction(self.act_undo)
+        tb.addAction(self.act_redo)
+
         tb.addSeparator()
         tb.addAction(self.act_open)
         tb.addAction(self.act_save)
         tb.addAction(self.act_new)
+
         tb.addSeparator()
-        tb.addWidget(QLabel("CAL:"))
-        tb.addWidget(self.calibration_box)
-        tb.addWidget(QLabel("FIL:"))
-        tb.addWidget(self.filter_box)
-        tb.addWidget(QLabel("Dwell:"))
-        tb.addWidget(self.dwell_spin)
-        tb.addWidget(QLabel("Blink:"))
-        tb.addWidget(self.blink_spin)
+        tb.addWidget(cal_fil)
+        tb.addWidget(dwell_blink)
+
         tb.addSeparator()
         tb.addWidget(self.cb_gazepoint)
         tb.addWidget(self.theme_box)
@@ -465,7 +650,9 @@ class BuilderMainWindow(QMainWindow):
 
         if update_combo and hasattr(self, "theme_box"):
             self.theme_box.blockSignals(True)
-            self.theme_box.setCurrentText(self.theme)
+            i = self.theme_box.findData(self.theme)
+            if i >= 0:
+                self.theme_box.setCurrentIndex(i)
             self.theme_box.blockSignals(False)
 
         self.list_widget.viewport().update()
@@ -540,7 +727,10 @@ class BuilderMainWindow(QMainWindow):
     # ---------- core ----------
     def doc(self) -> dict:
         return {
-            "meta": {"title": "Gaze Questionnaire", "version": 1},
+            "meta": {
+                "title": "Gaze Questionnaire",
+                "version": self.version
+            },
             "calibration": self.calibration,
             "filter": self.filter,
             "dwell_time": self.dwell_time,
@@ -616,12 +806,18 @@ class BuilderMainWindow(QMainWindow):
 
     # ---------- drag&drop reorder ----------
     def on_list_reordered(self):
-        self.items = [
+        old_items = list(self.items)
+
+        new_items = [
             self.list_widget.item(i).data(Qt.UserRole)
             for i in range(self.list_widget.count())
             if isinstance(self.list_widget.item(i).data(Qt.UserRole), dict)
         ]
-        self.refresh()
+
+        if new_items == old_items:
+            return
+
+        self.undo_stack.push(ReorderItemsCommand(self, old_items, new_items))
         self.statusBar().showMessage("Reordered", 1200)
 
     def on_gazepoint_blocked_changed(self, checked: bool):
@@ -657,28 +853,29 @@ class BuilderMainWindow(QMainWindow):
     def add_item(self):
         dlg = ItemEditorDialog(self)
         if dlg.exec():
-            self.items.append(dlg.get_item())
-            self.refresh()
-            self.list_widget.setCurrentRow(len(self.items) - 1)
+            item = dlg.get_item()
+            self.undo_stack.push(AddItemCommand(self, item, index=len(self.items)))
             self.statusBar().showMessage("Item added", 1500)
 
     def edit_item(self):
         row = self.list_widget.currentRow()
         if not (0 <= row < len(self.items)):
             return
-        dlg = ItemEditorDialog(self, self.items[row])
+
+        old_item = self.items[row]
+        dlg = ItemEditorDialog(self, old_item)
         if dlg.exec():
-            self.items[row] = dlg.get_item()
-            self.refresh()
-            self.list_widget.setCurrentRow(row)
+            new_item = dlg.get_item()
+            self.undo_stack.push(EditItemCommand(self, row, old_item, new_item))
             self.statusBar().showMessage("Item updated", 1500)
 
     def delete_item(self):
         row = self.list_widget.currentRow()
         if not (0 <= row < len(self.items)):
             return
-        del self.items[row]
-        self.refresh()
+
+        item = self.items[row]
+        self.undo_stack.push(DeleteItemCommand(self, row, item))
         self.statusBar().showMessage("Item deleted", 1500)
 
     def new_json(self):
@@ -687,6 +884,7 @@ class BuilderMainWindow(QMainWindow):
         self.current_path = None
         self.refresh()
         self.statusBar().showMessage("New document", 1500)
+        self.undo_stack.clear()
 
     def save_json(self):
         if self.current_path is None:
@@ -702,6 +900,7 @@ class BuilderMainWindow(QMainWindow):
             return
 
         self.statusBar().showMessage("Saved", 1500)
+        self.undo_stack.clear()
 
     def load_json(self):
         path, _ = QFileDialog.getOpenFileName(self, "Load JSON", "", "JSON (*.json)")
