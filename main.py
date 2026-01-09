@@ -242,8 +242,8 @@ def cli():
             "- `gq-run your_questionnaire` (e.g. `gq-run demo`) : Runs a Questionnaire\n"
             "- `gq-run --builder` : Runs the Builder (GUI)\n"
             "- `gq-run --list` : Lists available Questionnaires\n"
-            "- `gq-run --version` : Shows version\n\n"
-            "****************************************\n\n"
+            "- `gq-run --version` : Shows version"
+            "\n\n****************************************\n\n"
         )
 
     questionnaire_path = questionnaires_dir / f"{args.name}.json"
