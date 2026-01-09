@@ -166,6 +166,11 @@ gq-run --version
 `
 
 in the Terminal, you should see the current version Number.
+Running `gq-run` with any flags for the first time initially can take longer.
+
+For all available Flags, type
+
+`gq-run --help`
 
 #### 4) Run the Questionnaire Builder Tool
 
