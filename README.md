@@ -11,7 +11,7 @@ This project is intended for **HCI / Eye-Tracking research**, usability studies,
 
 #### 1) Install the Libraries
 
-In your terminal, `cd` to the project where you cloned it and execute...
+In your terminal, `cd` to the folder where you cloned it (root) and execute...
 
 on MacOS (tested):
 
