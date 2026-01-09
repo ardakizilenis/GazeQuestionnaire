@@ -7,6 +7,84 @@ This project is intended for **HCI / Eye-Tracking research**, usability studies,
 
 ---
 
+## Quick Start
+
+#### 1) Install the Libraries
+
+In your terminal, `cd` to the project where you cloned it and execute...
+
+on MacOS (tested):
+
+```bash
+chmod +x setup_macos.sh
+./setup_macos.sh
+```
+
+on Windows (not tested):
+
+```bash
+.\setup_windows.ps1
+```
+
+#### 2) Activate your virtual environment
+
+In the Terminal, activate your virtual environment:
+
+`
+source env/bin/activate
+`
+#### 3) Check if it was installed correctly
+
+When you type
+
+`
+gq-run --version
+`
+
+in the Terminal, you should see the current version Number.
+Running `gq-run` with any flags for the first time initially can take longer.
+
+For all available Flags, type
+
+`gq-run --help`
+
+#### 4) Run the Questionnaire Builder Tool
+
+`
+gq-run --builder
+`
+
+#### 5) CRUD Questionnaires 
+
+Create, Read, Update or Delete the Demo Questionnaire or your own questionnaires.
+>***IMPORTANT***: Save and load your Questionnaire JSONs ALWAYS in and from the `/questionnaires/` folder in the project or they won't execute!
+
+#### 6) Save
+
+Click the Save in the toolbar or press `Ctrl + S` / `command + S` and select `/questionnaires/` as taget folder. **Again, this is important!!**
+
+#### 7) Run the questionnaire
+
+Run your questionnaire like following, without the `.json` ending.
+
+`
+gq-run your_questionnaire
+`
+
+e.g.:
+
+`
+gq-run demo
+`
+
+
+Execution flow:
+- Selected Kalibration Method
+- Selected Filter Method
+- Fullscreen questionnaire with Questions from the JSON Questionnaire
+
+---
+
 ## DEMO: Yes/No Question
 
 Yes/No Question with Dwell Time Activation (Dwell 1-2 Seconds to Select) and the clean "Clinical" Theme
@@ -129,83 +207,6 @@ https://github.com/user-attachments/assets/bd031e42-9109-4fa6-bee4-f70e8a2bb2ea
 - Webcam (or compatible video source)
 - Supported OS: Windows, macOS, Linux
 
----
-
-## Quick Start
-
-#### 1) Install the Libraries
-
-In your terminal, `cd` to the project where you cloned it and execute...
-
-on MacOS (tested):
-
-```bash
-chmod +x setup_macos.sh
-./setup_macos.sh
-```
-
-on Windows (not tested):
-
-```bash
-.\setup_windows.ps1
-```
-
-#### 2) Activate your virtual environment
-
-In the Terminal, activate your virtual environment:
-
-`
-source env/bin/activate
-`
-#### 3) Check if it was installed correctly
-
-When you type
-
-`
-gq-run --version
-`
-
-in the Terminal, you should see the current version Number.
-Running `gq-run` with any flags for the first time initially can take longer.
-
-For all available Flags, type
-
-`gq-run --help`
-
-#### 4) Run the Questionnaire Builder Tool
-
-`
-gq-run --builder
-`
-
-#### 5) CRUD Questionnaires 
-
-Create, Read, Update or Delete the Demo Questionnaire or your own questionnaires.
->***IMPORTANT***: Save and load your Questionnaire JSONs ALWAYS in and from the `/questionnaires/` folder in the project or they won't execute!
-
-#### 6) Save
-
-Click the Save in the toolbar or press `Ctrl + S` / `command + S` and select `/questionnaires/` as taget folder. **Again, this is important!!**
-
-#### 7) Run the questionnaire
-
-Run your questionnaire like following, without the `.json` ending.
-
-`
-gq-run your_questionnaire
-`
-
-e.g.:
-
-`
-gq-run demo
-`
-
-
-Execution flow:
-- Selected Kalibration Method
-- Selected Filter Method
-- Fullscreen questionnaire with Questions from the JSON Questionnaire
 ---
 
 ## Project Tree
