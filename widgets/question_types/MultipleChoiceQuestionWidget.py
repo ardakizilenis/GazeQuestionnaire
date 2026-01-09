@@ -28,9 +28,6 @@ def _try_load_futuristic_font() -> QFont:
 
 
 class MultipleChoiceQuestionWidget(GazeWidget):
-    """
-    Neon-themed multiple choice widget (4 options + reset/rest/submit) with caching for performance.
-    """
 
     submitted = Signal(object)
     clicked = Signal(int, str)

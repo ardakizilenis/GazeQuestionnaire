@@ -25,15 +25,6 @@ def _try_load_futuristic_font() -> QFont:
 
 
 class TextInputWidget(GazeWidget):
-    """
-    Neon-themed, cached 3x3 grid text input widget.
-
-    Keeps your interaction logic identical, but renders with:
-    - cached background (gradient + scanlines)
-    - cached static mode UI (panels + labels)
-    - cached center text (prompt + current text) per content change
-    - only dynamic overlays per frame (dwell bar + minimal selection emphasis + gaze dot)
-    """
 
     submitted = Signal(object)
     clicked = Signal(int, str)
@@ -101,13 +92,12 @@ class TextInputWidget(GazeWidget):
         self._scan_tile = QPixmap()
         self._scan_ready = False
 
-        # Mode-specific static grid labels (groups/letters) excluding center text content
         self._mode_cache = QPixmap()
-        self._mode_cache_key = None  # (w,h,mode,current_group_index,font_size)
+        self._mode_cache_key = None
 
-        # Center cell (question + current_text), changes often, cache separately
+        # Center cell
         self._center_cache = QPixmap()
-        self._center_cache_key = None  # (w,h,mode,current_group_index,question,current_text,font_size)
+        self._center_cache_key = None
 
         # Layout
         self._layout_key = None

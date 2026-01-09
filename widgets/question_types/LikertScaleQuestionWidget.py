@@ -24,9 +24,6 @@ def _try_load_futuristic_font() -> QFont:
     return f
 
 class LikertScaleQuestionWidget(GazeWidget):
-    """
-    Neon-themed Likert scale widget (5 options + question + submit) with caching for performance.
-    """
 
     submitted = Signal(object)
     clicked = Signal(int, str)

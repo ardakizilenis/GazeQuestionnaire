@@ -145,7 +145,7 @@ class SmoothPursuitLikertScaleWidget(GazeWidget):
             else:
                 raise AssertionError("SmoothPursuitLikertWidget requires exactly 5 labels (list of 5 strings).")
 
-        # params (unchanged)
+        # params
         self.window_ms = int(window_ms)
         self.corr_threshold = float(corr_threshold)
         self.submit_corr_threshold = float(self.corr_threshold + 0.06)
@@ -169,7 +169,7 @@ class SmoothPursuitLikertScaleWidget(GazeWidget):
         base_shift = int(self.height() * 0.06) if self.height() else 44
         self.layout_shift_down_px = max(44, base_shift)
 
-        # rolling buffers (unchanged)
+        # rolling buffers
         self._t0 = time.monotonic()
         self._t: List[float] = []
         self._gx: List[float] = []
