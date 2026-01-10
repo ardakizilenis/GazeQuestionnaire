@@ -99,13 +99,6 @@ def _try_load_futuristic_font() -> QFont:
 
 
 class SmoothPursuitMultipleChoiceWidget(GazeWidget):
-    """
-    Smooth Pursuit Multiple Choice (multi-select) with separate SUBMIT (MCQ-like UX).
-
-    - 4 moving labels (corners) with a moving DOT pursuit stimulus per label.
-    - Following an option DOT stably TOGGLES that label (multi-select).
-    - Following SUBMIT DOT stably submits current selection.
-    """
 
     submitted = Signal(object)  # List[str]
     clicked = Signal(int, str)  # "toggle:<label>" / "submit"
@@ -762,7 +755,7 @@ class SmoothPursuitMultipleChoiceWidget(GazeWidget):
         pen = QPen(self.theme.text if enabled else self.theme.disabled, 4 if enabled else 3)
         pen.setCosmetic(True)
         p.setPen(pen)
-        p.drawText(submit_rect, Qt.AlignCenter, f"SUBMIT ({sel_txt})")
+        p.drawText(submit_rect, Qt.AlignCenter, f"SUBMIT ({sel_txt}) ⏎")
 
         sx, sy = submit_dot
         p.setPen(Qt.NoPen)

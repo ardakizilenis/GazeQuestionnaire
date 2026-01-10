@@ -789,7 +789,7 @@ class SmoothPursuitLikertScaleWidget(GazeWidget):
             pen = QPen(self.theme.text, 4)
         pen.setCosmetic(True)
         p.setPen(pen)
-        p.drawText(submit_rect, Qt.AlignCenter, f"SUBMIT ({sel_txt})")
+        p.drawText(submit_rect, Qt.AlignCenter, f"SUBMIT ({sel_txt}) ⏎")
 
         sx, sy = submit_dot
         p.setPen(Qt.NoPen)

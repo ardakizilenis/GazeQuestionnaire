@@ -375,7 +375,7 @@ class LikertScaleQuestionWidget(GazeWidget):
             draw_panel(rect, self.theme.neon_violet, title=str(self.labels[i]), title_font=opt_font)
 
         draw_panel(self.question_rect, self.theme.neon_cyan, title=None)
-        draw_panel(self.submit_rect, self.theme.submit, title="SUBMIT", title_font=font)
+        draw_panel(self.submit_rect, self.theme.submit, title="SUBMIT ⏎", title_font=font)
 
         q_outer = self.question_rect.adjusted(10, 10, -10, -10)
         q_inner = q_outer.adjusted(18, 18, -18, -18)

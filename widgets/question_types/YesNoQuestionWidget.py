@@ -337,9 +337,9 @@ class YesNoQuestionWidget(GazeWidget):
         label_font.setPixelSize(int(self.yes_rect.height() * 0.06))
         p.setFont(label_font)
 
-        p.drawText(self.yes_rect, Qt.AlignCenter, "YES")
-        p.drawText(self.no_rect, Qt.AlignCenter, "NO")
-        p.drawText(self.submit_rect, Qt.AlignCenter, "SUBMIT")
+        p.drawText(self.yes_rect, Qt.AlignCenter, "YES ✅")
+        p.drawText(self.no_rect, Qt.AlignCenter, "NO ❌")
+        p.drawText(self.submit_rect, Qt.AlignCenter, "SUBMIT ⏎")
 
         # question
         panel(self.question_rect, self.theme.neon_violet, False)

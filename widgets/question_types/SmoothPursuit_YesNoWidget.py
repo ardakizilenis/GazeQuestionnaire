@@ -99,17 +99,6 @@ def _try_load_futuristic_font() -> QFont:
 
 
 class SmoothPursuitYesNoWidget(GazeWidget):
-    """
-    Smooth Pursuit Yes/No with separate SUBMIT (single-select UX).
-
-    - YES and NO have a moving DOT stimulus (pursuit target) and a static label.
-    - Following YES/NO stably selects that choice (single-select).
-    - Following SUBMIT stably submits current selection.
-
-    Signals:
-      submitted(object): emits ONLY "yes" or "no" (string) or "" if allow_empty_submit
-      clicked(int, str): emits "select:yes", "select:no", "submit"
-    """
 
     submitted = Signal(object)
     clicked = Signal(int, str)
@@ -731,7 +720,7 @@ class SmoothPursuitYesNoWidget(GazeWidget):
         pen = QPen(self.theme.text if enabled else self.theme.disabled, 4 if enabled else 3)
         pen.setCosmetic(True)
         p.setPen(pen)
-        p.drawText(submit_rect, Qt.AlignCenter, f"SUBMIT ({sel_txt})")
+        p.drawText(submit_rect, Qt.AlignCenter, f"SUBMIT ({sel_txt}) ⏎")
 
         sx, sy = submit_dot
         p.setPen(Qt.NoPen)

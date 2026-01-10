@@ -375,8 +375,8 @@ class MultipleChoiceQuestionWidget(GazeWidget):
             panel(r, self.theme.option_accent, str(self.labels[i]))
 
         # reset/rest/submit panels
-        panel(self.rect_reset, self.theme.reset, "RESET")
-        panel(self.rect_submit, self.theme.submit, "SUBMIT")
+        panel(self.rect_reset, self.theme.reset, "↺ RESET")
+        panel(self.rect_submit, self.theme.submit, "SUBMIT ⏎")
         panel(self.rect_rest, self.theme.neon_cyan, None)
 
         # question in REST area with light cached glow
