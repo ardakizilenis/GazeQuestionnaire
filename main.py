@@ -254,7 +254,8 @@ def cli():
 
 
 if __name__ == "__main__":
-    # cli()
+    # ---------- run with gq-run command------------
+    cli()
 
-    # ---------- optional ------------
-    main("questionnaires/demo.json")
+    # ---------- debug ------------
+    # main("questionnaires/demo.json")
