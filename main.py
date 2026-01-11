@@ -196,12 +196,10 @@ def cli():
         import argcomplete
 
         def questionnaire_name_completer(**kwargs):
-            # gibt nur "stems" zurück: demo, study1, ...
             if questionnaires_dir.exists():
                 return sorted(p.stem for p in questionnaires_dir.glob("*.json"))
             return []
 
-        # positional "name" Argument finden und Completer anhängen
         for action in parser._actions:
             if getattr(action, "dest", None) == "name":
                 action.completer = questionnaire_name_completer
@@ -214,7 +212,6 @@ def cli():
     args = parser.parse_args()
 
     if args.version:
-        # robust: Version aus installiertem Paket (pyproject.toml [project].name)
         try:
             from importlib.metadata import version
             print(version("gazequestionnaire"))
@@ -254,8 +251,8 @@ def cli():
 
 
 if __name__ == "__main__":
-    # ---------- run with gq-run command------------
+    # ------------------------------ run with gq-run
     cli()
 
-    # ---------- debug ------------
+    # ------------------------------ debug mode
     # main("questionnaires/demo.json")
