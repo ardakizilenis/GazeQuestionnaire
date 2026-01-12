@@ -8,7 +8,7 @@
   "dwell_time": 1200,
   "blink_time": 350,
   "gazepoint_blocked": false,
-  "theme": "clinical",
+  "theme": "oled_dark",
   "items": [
     {
       "type": "info",
@@ -31,21 +31,23 @@
       "duration": 5
     },
     {
-      "duration": 7,
-      "text": "QUESTION 1:\nAre you wearing Glasses right now? \n(yes/no)",
-      "type": "info"
+      "type": "info",
+      "text": "QUESTION 1:\nAre you wearing Glasses right now?",
+      "duration": 7
     },
     {
-      "activation": "dwell",
-      "text": "Are you wearing Glasses right now? \n(yes/no)",
-      "type": "yesno"
+      "type": "yesno",
+      "text": "Are you wearing Glasses right now?",
+      "activation": "dwell"
     },
     {
-      "duration": 7,
-      "text": "QUESTION 2: \nHow comfortable do you feel with Eye-Tracking? \n(Likert-Scale)",
-      "type": "info"
+      "type": "info",
+      "text": "QUESTION 2: \nHow comfortable do you feel with Eye-Tracking?",
+      "duration": 7
     },
     {
+      "type": "likert",
+      "text": "How comfortable do you feel with Eye-Tracking?",
       "activation": "dwell",
       "labels": [
         "not at all comfortable",
@@ -53,35 +55,33 @@
         "neutral",
         "comfortable",
         "very comfortable"
-      ],
-      "text": "How comfortable do you feel with Eye-Tracking? \n(Likert-Scale)",
-      "type": "likert"
+      ]
     },
     {
-      "duration": 7,
-      "text": "QUESTION 3: \nWhich of the following drinks do you like the most? \n(Multiple Choice)",
-      "type": "info"
+      "type": "info",
+      "text": "QUESTION 3: \nWhich of the following drinks do you like the most?",
+      "duration": 7
     },
     {
+      "type": "mcq",
+      "text": "Which of the following drinks do you like the most?",
       "activation": "dwell",
       "labels": [
         "Coffee",
         "Tea",
         "Water",
         "Juice/Energy Drink"
-      ],
-      "text": "Which of the following drinks do you like the most? \n(Multiple Choice)",
-      "type": "mcq"
+      ]
     },
     {
-      "duration": 7,
-      "text": "QUESTION 4: \nDescribe your current mood in one word \n(Text Entry)",
-      "type": "info"
+      "type": "info",
+      "text": "QUESTION 4: \nDescribe your current mood in one word",
+      "duration": 7
     },
     {
-      "activation": "dwell",
-      "text": "Describe your current mood in one word \n(Text Entry)",
-      "type": "textgrid"
+      "type": "textgrid",
+      "text": "Describe your current mood in one word",
+      "activation": "dwell"
     },
     {
       "type": "info",
@@ -94,21 +94,23 @@
       "duration": 5
     },
     {
-      "duration": 7,
-      "text": "QUESTION 5: \nDo you have motor impairments? \n(yes/no)",
-      "type": "info"
+      "type": "info",
+      "text": "QUESTION 5: \nDo you have motor impairments?",
+      "duration": 7
     },
     {
-      "activation": "blink",
-      "text": "Do you have motor impairments? \n(yes/no)",
-      "type": "yesno"
+      "type": "yesno",
+      "text": "Do you have motor impairments?",
+      "activation": "blink"
     },
     {
-      "duration": 7,
-      "text": "QUESTION 6:\nHow experienced are you with computers?\n(Likert-Scale)",
-      "type": "info"
+      "type": "info",
+      "text": "QUESTION 6:\nHow experienced are you with computers?",
+      "duration": 7
     },
     {
+      "type": "likert",
+      "text": "How experienced are you with computers?",
       "activation": "blink",
       "labels": [
         "not at all experienced",
@@ -116,14 +118,12 @@
         "neutral",
         "experienced",
         "very experienced"
-      ],
-      "text": "How experienced are you with computers?\n(Likert-Scale)",
-      "type": "likert"
+      ]
     },
     {
-      "duration": 7,
-      "text": "QUESTION 7:\nWhich colors do you have to mix to get orange?\n(Multiple-Choice)",
-      "type": "info"
+      "type": "info",
+      "text": "QUESTION 7:\nWhich colors do you have to mix to get orange?",
+      "duration": 7
     },
     {
       "type": "mcq",
@@ -137,14 +137,14 @@
       ]
     },
     {
-      "duration": 7,
-      "text": "QUESTION 8:\nDescribe your experience with Gaze Questionnaire with one Word.\n(Text Entry)",
-      "type": "info"
+      "type": "info",
+      "text": "QUESTION 8:\nDescribe your experience with Gaze Questionnaire with one Word.",
+      "duration": 7
     },
     {
-      "activation": "blink",
-      "text": "Describe your experience with Gaze Questionnaire with one Word.\n(Text Entry)",
-      "type": "textgrid"
+      "type": "textgrid",
+      "text": "Describe your experience with Gaze Questionnaire with one Word.",
+      "activation": "blink"
     },
     {
       "type": "info",
@@ -157,21 +157,23 @@
       "duration": 5
     },
     {
-      "duration": 5,
-      "text": "QUESTION 9: \nIs a tree green?\n(yes/no)",
-      "type": "info"
+      "type": "info",
+      "text": "QUESTION 9: \nIs a tree green?",
+      "duration": 5
     },
     {
-      "activation": "smooth_pursuit",
-      "text": "Is a tree green? \n(yes/no)",
-      "type": "sp_yesno"
+      "type": "sp_yesno",
+      "text": "Is a tree green?",
+      "activation": "smooth_pursuit"
     },
     {
-      "duration": 5,
-      "text": "QUESTION 10: \nHow often do you listen to classical music?\n(likert)",
-      "type": "info"
+      "type": "info",
+      "text": "QUESTION 10: \nHow often do you listen to classical music?",
+      "duration": 5
     },
     {
+      "type": "sp_likert",
+      "text": "How often do you listen to classical music?",
       "activation": "smooth_pursuit",
       "labels": [
         "Not at all",
@@ -179,25 +181,23 @@
         "Sometimes",
         "Often",
         "Very Often"
-      ],
-      "text": "How often do you listen to classical music?\n(likert)",
-      "type": "sp_likert"
+      ]
     },
     {
-      "duration": 5,
-      "text": "QUESTION 11:\nComplete the name of a famous pirate\n(Multiple Choice)",
-      "type": "info"
+      "type": "info",
+      "text": "QUESTION 11:\nComplete the name of a famous pirate",
+      "duration": 5
     },
     {
+      "type": "sp_mcq",
+      "text": "Complete the name of a famous pirate",
       "activation": "smooth_pursuit",
       "labels": [
         "Jack",
         "Captain",
         "Sparrow",
         "Beethoven"
-      ],
-      "text": "Complete the name of a famous pirate\n(Multiple Choice)",
-      "type": "sp_mcq"
+      ]
     },
     {
       "type": "info",

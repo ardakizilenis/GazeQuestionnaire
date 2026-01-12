@@ -2,56 +2,27 @@
 import json
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QSize, Signal
-from PySide6.QtGui import QAction, QFont, QColor, QPainter, QUndoCommand, QUndoStack
+from PySide6.QtCore import Qt, QSize, Signal, QEvent
+from PySide6.QtGui import QAction, QFont, QColor, QPainter, QUndoCommand, QUndoStack, QFontMetrics
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QListWidget, QListWidgetItem, QTextEdit, QComboBox, QSpinBox,
     QFileDialog, QMessageBox, QFormLayout, QDialog, QDialogButtonBox,
-    QLabel, QToolBar, QStyle, QStyledItemDelegate, QCheckBox, QGroupBox, QSizePolicy, QLineEdit, QToolButton
+    QLabel, QToolBar, QStyle, QStyledItemDelegate, QCheckBox, QGroupBox, QLineEdit
 )
 
 from tools.themes import TYPE_COLOR_THEMES
 from tools.stylesheets import *
 
 # ---- Theme registry (single source of truth) ----
-
 THEME_REGISTRY = {
-    "neon": {
-        "label": "Neon",
-        "stylesheet": neon_stylesheet,
-        "app_font": ("Segoe UI", 11),
-    },
-    "retro_terminal": {
-        "label": "Retro Terminal",
-        "stylesheet": retro_terminal_stylesheet,
-        "app_font": ("Segoe UI", 11),
-    },
-    "clinical": {
-        "label": "Clinical",
-        "stylesheet": clinical_stylesheet,
-        "app_font": ("Segoe UI", 11),
-    },
-    "oled_dark": {
-        "label": "Oled Dark",
-        "stylesheet": oled_dark_stylesheet,
-        "app_font": ("Segoe UI", 11),
-    },
-    "sunset_synth": {
-        "label": "Sunset Synth",
-        "stylesheet": sunset_synth_stylesheet,
-        "app_font": ("Segoe UI", 11),
-    },
-    "forest_mist": {
-        "label": "Forest Mist",
-        "stylesheet": forest_mist_stylesheet,
-        "app_font": ("Segoe UI", 11),
-    },
-    "signal_contrast": {
-        "label": "Signal Contrast",
-        "stylesheet": signal_contrast_stylesheet,
-        "app_font": ("Segoe UI", 11),
-    },
+    "neon": {"label": "Neon", "stylesheet": neon_stylesheet, "app_font": ("Segoe UI", 11)},
+    "retro_terminal": {"label": "Retro Terminal", "stylesheet": retro_terminal_stylesheet, "app_font": ("Segoe UI", 11)},
+    "clinical": {"label": "Clinical", "stylesheet": clinical_stylesheet, "app_font": ("Segoe UI", 11)},
+    "oled_dark": {"label": "Oled Dark", "stylesheet": oled_dark_stylesheet, "app_font": ("Segoe UI", 11)},
+    "sunset_synth": {"label": "Sunset Synth", "stylesheet": sunset_synth_stylesheet, "app_font": ("Segoe UI", 11)},
+    "forest_mist": {"label": "Forest Mist", "stylesheet": forest_mist_stylesheet, "app_font": ("Segoe UI", 11)},
+    "signal_contrast": {"label": "Signal Contrast", "stylesheet": signal_contrast_stylesheet, "app_font": ("Segoe UI", 11)},
 }
 
 QUESTION_TYPES = ["info", "yesno", "mcq", "likert", "textgrid", "sp_yesno", "sp_mcq", "sp_likert"]
@@ -64,7 +35,7 @@ FILTERS = ["kalman", "kde", "no-filter"]
 DEFAULT_FILTER = "kalman"
 
 DEFAULT_DWELL_TIME = 1000   # ms
-DEFAULT_BLINK_TIME = 400  # ms
+DEFAULT_BLINK_TIME = 400    # ms
 
 BUILDER_THEMES = list(THEME_REGISTRY.keys())
 THEME_NAMES = [THEME_REGISTRY[k]["label"] for k in BUILDER_THEMES]
@@ -93,10 +64,59 @@ def apply_theme(app: QApplication, theme_key: str):
 def normalize_theme(theme_key: str) -> str:
     return theme_key if theme_key in THEME_REGISTRY else DEFAULT_THEME
 
-# ------------------ DnD list widget ------------------
+def set_combo_by_data(combo: QComboBox, value):
+    combo.blockSignals(True)
+    i = combo.findData(value)
+    if i >= 0:
+        combo.setCurrentIndex(i)
+    combo.blockSignals(False)
 
-from PySide6.QtCore import Qt, Signal, QEvent
-from PySide6.QtWidgets import QListWidget
+def set_checkbox_silent(cb: QCheckBox, checked: bool):
+    cb.blockSignals(True)
+    cb.setChecked(bool(checked))
+    cb.blockSignals(False)
+
+def set_spin_silent(spin: QSpinBox, value: int):
+    spin.blockSignals(True)
+    spin.setValue(int(value))
+    spin.blockSignals(False)
+
+def make_labeled_row(label_text: str, widget: QWidget) -> QWidget:
+    row = QWidget()
+    row_l = QHBoxLayout(row)
+    row_l.setContentsMargins(0, 0, 0, 0)
+    row_l.setSpacing(6)
+    row_l.addWidget(QLabel(label_text))
+    row_l.addWidget(widget)
+    return row
+
+def make_vblock(rows: list[QWidget]) -> QWidget:
+    w = QWidget()
+    l = QVBoxLayout(w)
+    l.setContentsMargins(0, 0, 0, 0)
+    l.setSpacing(2)
+    for r in rows:
+        l.addWidget(r)
+    return w
+
+def qtype_to_label(qtype: str) -> str:
+    if qtype in ["likert", "sp_likert"]:
+        return "Likert Scale"
+    if qtype in ["yesno", "sp_yesno"]:
+        return "Yes/No"
+    if qtype in ["mcq", "sp_mcq"]:
+        return "MC-Question"
+    if qtype == "textgrid":
+        return "Text"
+    return qtype.capitalize()
+
+def activation_to_label(act: str) -> str:
+    act = (act or "").capitalize()
+    if act == "Smooth_pursuit":
+        return "Smooth Pursuit"
+    return act.capitalize()
+
+# ------------------ DnD list widget ------------------
 
 class ReorderListWidget(QListWidget):
     orderChanged = Signal()
@@ -118,12 +138,9 @@ class ReorderListWidget(QListWidget):
     def eventFilter(self, obj, event):
         if obj is self.viewport():
             et = event.type()
-
             if et in (QEvent.MouseMove, QEvent.Enter):
                 over_item = self.itemAt(event.pos()) is not None
                 self.viewport().setCursor(Qt.OpenHandCursor if over_item else Qt.ArrowCursor)
-
-
         return super().eventFilter(obj, event)
 
     def startDrag(self, supportedActions):
@@ -136,9 +153,22 @@ class ReorderListWidget(QListWidget):
             self.viewport().setCursor(Qt.OpenHandCursor if over_item else Qt.ArrowCursor)
 
     def dropEvent(self, event):
-        super().dropEvent(event)
-        self.orderChanged.emit()
+        selected_obj = None
+        cur = self.currentItem()
+        if cur is not None:
+            selected_obj = cur.data(Qt.UserRole)
 
+        super().dropEvent(event)
+
+        if selected_obj is not None:
+            for i in range(self.count()):
+                it = self.item(i)
+                if it is not None and it.data(Qt.UserRole) is selected_obj:
+                    self.setCurrentRow(i)
+                    it.setSelected(True)
+                    break
+
+        self.orderChanged.emit()
 
 # ------------------ Item Editor ------------------
 
@@ -155,22 +185,76 @@ class CardItemDelegate(QStyledItemDelegate):
 
         it = index.data(Qt.UserRole) or {}
         qtype = it.get("type", "info")
+        q_label = qtype_to_label(qtype)
+
+        a_label = activation_to_label(it.get("activation", ""))
+
         c = palette.get(qtype, palette["info"])
-
         r = option.rect.adjusted(10, 6, -10, -6)
-
         bg = QColor(c["bg"])
         fg = QColor(c["fg"])
 
         painter.setRenderHint(QPainter.Antialiasing, True)
-
-        # Card background + border
         painter.setBrush(bg)
         painter.drawRoundedRect(r, 10, 10)
 
-        # Text
+        fm = QFontMetrics(painter.font())
+        pad_x, pad_y = 8, 4
+        gap = 6
+        top = r.top() + 10
+        right = r.right() - 10
+
+        def badge_rect_for_text(text: str, right_edge: int):
+            tw = fm.horizontalAdvance(text)
+            th = fm.height()
+            rect = r.adjusted(0, 0, 0, 0)
+            rect.setTop(top)
+            rect.setBottom(top + th + 2 * pad_y)
+            rect.setRight(right_edge)
+            rect.setLeft(right_edge - (tw + 2 * pad_x))
+            return rect
+
+        duration_text = None
+        if q_label == "Info":
+            duration_text = f"{int(it.get('duration', 5) or 5)}s"
+
+        secondary_text = duration_text if duration_text is not None else (a_label if a_label else None)
+
+        secondary_rect = None
+        if secondary_text:
+            secondary_rect = badge_rect_for_text(secondary_text, right)
+            secondary_bg = QColor(fg)
+            secondary_bg.setAlpha(40)
+            painter.setBrush(secondary_bg)
+            painter.setPen(Qt.NoPen)
+            painter.drawRoundedRect(secondary_rect, 8, 8)
+
+            painter.setPen(fg)
+            painter.drawText(
+                secondary_rect.adjusted(pad_x, pad_y, -pad_x, -pad_y),
+                Qt.AlignVCenter | Qt.AlignRight,
+                secondary_text
+            )
+
+        qtype_text = str(q_label)
+        qtype_right_edge = (secondary_rect.left() - gap) if secondary_rect else right
+        qtype_rect = badge_rect_for_text(qtype_text, qtype_right_edge)
+
+        qtype_bg = QColor(fg)
+        qtype_bg.setAlpha(70)
+        painter.setBrush(qtype_bg)
+        painter.setPen(Qt.NoPen)
+        painter.drawRoundedRect(qtype_rect, 8, 8)
+
+        painter.setPen(fg)
+        painter.drawText(
+            qtype_rect.adjusted(pad_x, pad_y, -pad_x, -pad_y),
+            Qt.AlignVCenter | Qt.AlignRight,
+            qtype_text
+        )
+
         text = index.data(Qt.DisplayRole) or ""
-        text_rect = r.adjusted(14, 10, -10, -10)
+        text_rect = r.adjusted(14, 10, -14, -10)
         painter.setPen(fg)
         painter.drawText(text_rect, Qt.TextWordWrap | Qt.AlignVCenter, text)
 
@@ -195,6 +279,8 @@ class ItemEditorDialog(QDialog):
 
         self.text_edit = QTextEdit()
         self.text_edit.setPlaceholderText("Question / info text...")
+
+        self.duration_label = QLabel("Duration:")
 
         self.duration_spin = QSpinBox()
         self.duration_spin.setRange(1, 999)
@@ -226,11 +312,10 @@ class ItemEditorDialog(QDialog):
         form.addRow("Type", self.type_box)
         form.addRow("Activation", self.activation_row)
         form.addRow("Text", self.text_edit)
-        form.addRow("Duration (info)", self.duration_spin)
+        form.addRow(self.duration_label, self.duration_spin)
         form.addRow(self.labels_group)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
 
@@ -245,23 +330,21 @@ class ItemEditorDialog(QDialog):
             self._load(existing)
 
     def _update_visibility(self, qtype: str):
-        self.duration_spin.setEnabled(qtype == "info")
+        is_info = (qtype == "info")
+        self.duration_spin.setEnabled(is_info)
+        self.duration_spin.setVisible(is_info)
+        self.duration_label.setVisible(is_info)
+
         self.activation_row.setVisible(qtype not in ("info", "sp_yesno", "sp_mcq", "sp_likert"))
 
         needs_labels = qtype in ("mcq", "likert", "sp_mcq", "sp_likert")
         self.labels_group.setVisible(needs_labels)
-
         if not needs_labels:
             return
 
         n = 4 if qtype in ("mcq", "sp_mcq") else 5
-
         for i, le in enumerate(self.label_edits):
             le.setVisible(i < n)
-
-        for i in range(n):
-            if not self.label_edits[i].text().strip():
-                self.label_edits[i].setText(f"Option {i+1}")
 
     def _load(self, it: dict):
         self.type_box.setCurrentText(it.get("type", "info"))
@@ -269,13 +352,23 @@ class ItemEditorDialog(QDialog):
         if it.get("activation") in ACTIVATIONS:
             self.activation_box.setCurrentText(it["activation"])
         self.duration_spin.setValue(int(it.get("duration", 5) or 5))
+
         labels = it.get("labels", [])
         for le in self.label_edits:
             le.setText("")
-
         if isinstance(labels, list):
             for i, val in enumerate(labels[:5]):
                 self.label_edits[i].setText(str(val))
+
+    def _collect_labels(self) -> list[str]:
+        qtype = self.type_box.currentText()
+        n = 4 if qtype in ("mcq", "sp_mcq") else 5 if qtype in ("likert", "sp_likert") else 0
+        out = []
+        for i in range(n):
+            t = self.label_edits[i].text().strip()
+            if t:
+                out.append(t)
+        return out
 
     def get_item(self) -> dict:
         qtype = self.type_box.currentText()
@@ -295,10 +388,8 @@ class ItemEditorDialog(QDialog):
             return it
 
         it["activation"] = self.activation_box.currentText()
-
         if qtype in ("mcq", "likert"):
             it["labels"] = self._collect_labels()
-
         return it
 
     def accept(self):
@@ -317,16 +408,6 @@ class ItemEditorDialog(QDialog):
             return
 
         super().accept()
-
-    def _collect_labels(self) -> list[str]:
-        out = []
-        for le in self.label_edits:
-            if le.isVisible():
-                t = le.text().strip()
-                if t:
-                    out.append(t)
-        return out
-
 
 # ------------------ Undo / Redo ------------------
 
@@ -409,9 +490,7 @@ class ReorderItemsCommand(QUndoCommand):
         self.win.items = list(self.old_order)
         self.win.refresh()
 
-
 # ------------------ Main Window ------------------
-
 
 class BuilderMainWindow(QMainWindow):
     def __init__(self):
@@ -426,7 +505,6 @@ class BuilderMainWindow(QMainWindow):
 
         self.calibration: str = DEFAULT_CALIBRATION
         self.filter: str = DEFAULT_FILTER
-
         self.theme = DEFAULT_THEME
 
         apply_theme(QApplication.instance(), self.theme)
@@ -439,77 +517,42 @@ class BuilderMainWindow(QMainWindow):
         self.statusBar().showMessage("Ready")
 
     # ---------- UI ----------
-    
+
+    def _make_action(self, icon_enum, text: str, tooltip: str, shortcut: str | None = None) -> QAction:
+        st = self.style()
+        act = QAction(st.standardIcon(icon_enum), text, self)
+        act.setToolTip(tooltip)
+        if shortcut:
+            act.setShortcut(shortcut)
+        return act
+
+    def _add_actions(self, actions: list[QAction]):
+        for a in actions:
+            self.tb.addAction(a)
+            w = self.tb.widgetForAction(a)
+            if w:
+                w.setCursor(Qt.PointingHandCursor)
 
     def _build_toolbar(self):
         self.tb = QToolBar("Main")
         self.tb.setIconSize(QSize(17, 17))
         self.tb.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-
         self.addToolBar(self.tb)
-        st = self.style()
 
-        # -------- Add --------
-        self.act_add = QAction(
-            st.standardIcon(QStyle.SP_FileDialogNewFolder),
-            "Add",
-            self
-        )
-        self.act_add.setToolTip("Add New Question (Ctrl+A)")
-        self.act_add.setShortcut("Ctrl+A")
+        # -------- Actions --------
+        self.act_add = self._make_action(QStyle.SP_FileDialogNewFolder, "Add", "Add New Question (Ctrl+A)", "Ctrl+A")
+        self.act_new = self._make_action(QStyle.SP_FileIcon, "New", "New File / Reset (Ctrl+N)", "Ctrl+N")
+        self.act_open = self._make_action(QStyle.SP_DialogOpenButton, "Open", "Open JSON-File (Ctrl+O)", "Ctrl+O")
+        self.act_save = self._make_action(QStyle.SP_DialogSaveButton, "Save", "Save JSON-File (Ctrl+S)", "Ctrl+S")
+        self.act_edit = self._make_action(QStyle.SP_DesktopIcon, "Edit", "Edit Question (Ctrl+E)", "Ctrl+E")
+        self.act_del = self._make_action(QStyle.SP_TrashIcon, "Delete", "Delete Question (Backspace)", "Backspace")
 
-        # -------- New --------
-        self.act_new = QAction(
-            st.standardIcon(QStyle.SP_FileIcon),
-            "New",
-            self
-        )
-        self.act_new.setToolTip("New File / Reset (Ctrl+N)")
-        self.act_new.setShortcut("Ctrl+N")
-
-        # -------- Open --------
-        self.act_open = QAction(
-            st.standardIcon(QStyle.SP_DialogOpenButton),
-            "Open",
-            self
-        )
-        self.act_open.setToolTip("Open JSON-File (Ctrl+O)")
-        self.act_open.setShortcut("Ctrl+O")
-
-        # -------- Save --------
-        self.act_save = QAction(
-            st.standardIcon(QStyle.SP_DialogSaveButton),
-            "Save",
-            self
-        )
-        self.act_save.setToolTip("Save JSON-File (Ctrl+S)")
-        self.act_save.setShortcut("Ctrl+S")
-
-        # -------- Edit --------
-        self.act_edit = QAction(
-            st.standardIcon(QStyle.SP_DesktopIcon),
-            "Edit",
-            self
-        )
-        self.act_edit.setToolTip("Edit Question (Ctrl+E)")
-        self.act_edit.setShortcut("Ctrl+E")
-
-        # -------- Delete --------
-        self.act_del = QAction(
-            st.standardIcon(QStyle.SP_TrashIcon),
-            "Delete",
-            self
-        )
-        self.act_del.setToolTip("Delete Question (Backspace)")
-        self.act_del.setShortcut("Backspace")
-
-        # -------- Undo / Redo --------
         self.act_undo = self.undo_stack.createUndoAction(self, "Undo")
-        self.act_undo.setIcon(st.standardIcon(QStyle.SP_ArrowBack))
+        self.act_undo.setIcon(self.style().standardIcon(QStyle.SP_ArrowBack))
         self.act_undo.setShortcut("Ctrl+Z")
 
         self.act_redo = self.undo_stack.createRedoAction(self, "Redo")
-        self.act_redo.setIcon(st.standardIcon(QStyle.SP_ArrowForward))
+        self.act_redo.setIcon(self.style().standardIcon(QStyle.SP_ArrowForward))
         self.act_redo.setShortcut("Ctrl+Y")
 
         # -------- Calibration Box --------
@@ -528,6 +571,7 @@ class BuilderMainWindow(QMainWindow):
         self.filter_box.currentIndexChanged.connect(self.on_filter_changed)
         self.filter_box.setCursor(Qt.PointingHandCursor)
 
+        # -------- Dwell/Blink Spins --------
         self.dwell_time: int = DEFAULT_DWELL_TIME
         self.dwell_spin = QSpinBox()
         self.dwell_spin.setFixedWidth(90)
@@ -559,7 +603,7 @@ class BuilderMainWindow(QMainWindow):
         self.theme_box.currentIndexChanged.connect(self.on_theme_changed)
         self.theme_box.setCursor(Qt.PointingHandCursor)
 
-        # -------- Gazepoint Checkpoint --------
+        # -------- Gazepoint Checkbox --------
         self.cb_gazepoint = QCheckBox("Hide GP?")
         self.cb_gazepoint.setChecked(self.gazepoint_blocked)
         self.cb_gazepoint.setObjectName("CBCheckbox")
@@ -567,78 +611,27 @@ class BuilderMainWindow(QMainWindow):
         self.cb_gazepoint.setCursor(Qt.PointingHandCursor)
 
         # -------- CAL/FIL vertical block --------
-        cal_fil = QWidget()
-        cal_fil_l = QVBoxLayout(cal_fil)
-        cal_fil_l.setContentsMargins(0, 0, 0, 0)
-        cal_fil_l.setSpacing(2)
-
-        row1 = QWidget()
-        row1_l = QHBoxLayout(row1)
-        row1_l.setContentsMargins(0, 0, 0, 0)
-        row1_l.setSpacing(6)
-        row1_l.addWidget(QLabel("CAL:"))
-        row1_l.addWidget(self.calibration_box)
-
-
-        row2 = QWidget()
-        row2_l = QHBoxLayout(row2)
-        row2_l.setContentsMargins(0, 0, 0, 0)
-        row2_l.setSpacing(6)
-        row2_l.addWidget(QLabel("FIL:"))
-        row2_l.addWidget(self.filter_box)
-
-        cal_fil_l.addWidget(row1)
-        cal_fil_l.addWidget(row2)
+        cal_fil = make_vblock([
+            make_labeled_row("CAL:", self.calibration_box),
+            make_labeled_row("FIL:", self.filter_box),
+        ])
 
         # -------- Dwell/Blink vertical block --------
-        dwell_blink = QWidget()
-        dwell_blink_l = QVBoxLayout(dwell_blink)
-        dwell_blink_l.setContentsMargins(0, 0, 0, 0)
-        dwell_blink_l.setSpacing(2)
-
-        row3 = QWidget()
-        row3_l = QHBoxLayout(row3)
-        row3_l.setContentsMargins(0, 0, 0, 0)
-        row3_l.setSpacing(6)
-        row3_l.addWidget(QLabel("Dwell:"))
-        row3_l.addWidget(self.dwell_spin)
-
-        row4 = QWidget()
-        row4_l = QHBoxLayout(row4)
-        row4_l.setContentsMargins(0, 0, 0, 0)
-        row4_l.setSpacing(6)
-        row4_l.addWidget(QLabel("Blink:"))
-        row4_l.addWidget(self.blink_spin)
-
-        dwell_blink_l.addWidget(row3)
-        dwell_blink_l.addWidget(row4)
+        dwell_blink = make_vblock([
+            make_labeled_row("Dwell:", self.dwell_spin),
+            make_labeled_row("Blink:", self.blink_spin),
+        ])
 
         # ------------- add toolbar elements here --------------
-        actions_1 = [self.act_add, self.act_edit, self.act_del]
-        actions_2 = [self.act_undo, self.act_redo]
-        actions_3 = [self.act_open, self.act_save, self.act_new]
-
-        for act_1 in actions_1:
-            self.tb.addAction(act_1)
-            self.tb.widgetForAction(act_1).setCursor(Qt.PointingHandCursor)
-
+        self._add_actions([self.act_add, self.act_edit, self.act_del])
         self.tb.addSeparator()
-
-        for act_2 in actions_2:
-            self.tb.addAction(act_2)
-            self.tb.widgetForAction(act_2).setCursor(Qt.PointingHandCursor)
-
+        self._add_actions([self.act_undo, self.act_redo])
         self.tb.addSeparator()
-
-        for act_3 in actions_3:
-            self.tb.addAction(act_3)
-            self.tb.widgetForAction(act_3).setCursor(Qt.PointingHandCursor)
-
+        self._add_actions([self.act_open, self.act_save, self.act_new])
         self.tb.addSeparator()
 
         self.tb.addWidget(cal_fil)
         self.tb.addWidget(dwell_blink)
-
         self.tb.addSeparator()
         self.tb.addWidget(self.cb_gazepoint)
         self.tb.addWidget(self.theme_box)
@@ -692,11 +685,7 @@ class BuilderMainWindow(QMainWindow):
         apply_theme(QApplication.instance(), self.theme)
 
         if update_combo and hasattr(self, "theme_box"):
-            self.theme_box.blockSignals(True)
-            i = self.theme_box.findData(self.theme)
-            if i >= 0:
-                self.theme_box.setCurrentIndex(i)
-            self.theme_box.blockSignals(False)
+            set_combo_by_data(self.theme_box, self.theme)
 
         self.list_widget.viewport().update()
         self.refresh()
@@ -716,13 +705,8 @@ class BuilderMainWindow(QMainWindow):
             return
 
         self.calibration = calibration_key
-
         if update_combo and hasattr(self, "calibration_box"):
-            self.calibration_box.blockSignals(True)
-            i = self.calibration_box.findData(self.calibration)
-            if i >= 0:
-                self.calibration_box.setCurrentIndex(i)
-            self.calibration_box.blockSignals(False)
+            set_combo_by_data(self.calibration_box, self.calibration)
 
         self.refresh()
         if show_status:
@@ -735,13 +719,8 @@ class BuilderMainWindow(QMainWindow):
             return
 
         self.filter = filter_key
-
         if update_combo and hasattr(self, "filter_box"):
-            self.filter_box.blockSignals(True)
-            i = self.filter_box.findData(self.filter)
-            if i >= 0:
-                self.filter_box.setCurrentIndex(i)
-            self.filter_box.blockSignals(False)
+            set_combo_by_data(self.filter_box, self.filter)
 
         self.refresh()
         if show_status:
@@ -749,31 +728,20 @@ class BuilderMainWindow(QMainWindow):
 
     def set_dwell_time(self, value: int, *, update_spin: bool = True):
         self.dwell_time = int(value)
-
         if update_spin and hasattr(self, "dwell_spin"):
-            self.dwell_spin.blockSignals(True)
-            self.dwell_spin.setValue(self.dwell_time)
-            self.dwell_spin.blockSignals(False)
-
+            set_spin_silent(self.dwell_spin, self.dwell_time)
         self.refresh()
 
     def set_blink_time(self, value: int, *, update_spin: bool = True):
         self.blink_time = int(value)
-
         if update_spin and hasattr(self, "blink_spin"):
-            self.blink_spin.blockSignals(True)
-            self.blink_spin.setValue(self.blink_time)
-            self.blink_spin.blockSignals(False)
-
+            set_spin_silent(self.blink_spin, self.blink_time)
         self.refresh()
 
     # ---------- core ----------
     def doc(self) -> dict:
         return {
-            "meta": {
-                "title": "Gaze Questionnaire",
-                "version": self.version
-            },
+            "meta": {"title": "Gaze Questionnaire", "version": self.version},
             "calibration": self.calibration,
             "filter": self.filter,
             "dwell_time": self.dwell_time,
@@ -785,18 +753,10 @@ class BuilderMainWindow(QMainWindow):
 
     @staticmethod
     def format_item_label(it: dict, idx: int) -> str:
-        qtype = it.get("type", "?")
         txt = (it.get("text", "") or "").replace("\n", " ").strip()
-        if len(txt) > 50:
-            txt = txt[:50] + "…"
-
-        if qtype == "info":
-            return f"{idx:02d}. [info {it.get('duration', 5)}s] {txt}"
-        if qtype in ("sp_yesno", "sp_mcq", "sp_likert"):
-            return f"{idx:02d}. [{qtype}] {txt}"
-
-        act = it.get("activation", "")
-        return f"{idx:02d}. [{qtype} | {act}] {txt}"
+        if len(txt) > 45:
+            txt = txt[:45] + "…"
+        return f"{txt}"
 
     def refresh(self):
         selected_obj = None
@@ -819,46 +779,29 @@ class BuilderMainWindow(QMainWindow):
                     break
 
         if hasattr(self, "cb_gazepoint"):
-            self.cb_gazepoint.blockSignals(True)
-            self.cb_gazepoint.setChecked(bool(self.gazepoint_blocked))
-            self.cb_gazepoint.blockSignals(False)
+            set_checkbox_silent(self.cb_gazepoint, bool(self.gazepoint_blocked))
 
         if hasattr(self, "calibration_box"):
-            self.calibration_box.blockSignals(True)
-            i = self.calibration_box.findData(self.calibration)
-            if i >= 0:
-                self.calibration_box.setCurrentIndex(i)
-            self.calibration_box.blockSignals(False)
+            set_combo_by_data(self.calibration_box, self.calibration)
 
         if hasattr(self, "filter_box"):
-            self.filter_box.blockSignals(True)
-            i = self.filter_box.findData(self.filter)
-            if i >= 0:
-                self.filter_box.setCurrentIndex(i)
-            self.filter_box.blockSignals(False)
+            set_combo_by_data(self.filter_box, self.filter)
 
         if hasattr(self, "theme_box"):
-            self.theme_box.blockSignals(True)
-            i = self.theme_box.findData(self.theme)
-            if i >= 0:
-                self.theme_box.setCurrentIndex(i)
-            self.theme_box.blockSignals(False)
+            set_combo_by_data(self.theme_box, self.theme)
 
         self.json_preview.setPlainText(pretty_json(self.doc()))
 
     # ---------- drag&drop reorder ----------
     def on_list_reordered(self):
         old_items = list(self.items)
-
         new_items = [
             self.list_widget.item(i).data(Qt.UserRole)
             for i in range(self.list_widget.count())
             if isinstance(self.list_widget.item(i).data(Qt.UserRole), dict)
         ]
-
         if new_items == old_items:
             return
-
         self.undo_stack.push(ReorderItemsCommand(self, old_items, new_items))
         self.statusBar().showMessage("Reordered", 1200)
 
@@ -876,9 +819,7 @@ class BuilderMainWindow(QMainWindow):
         self.statusBar().showMessage(f"Blink Threshold: {self.blink_time}", 1500)
 
     def on_theme_changed(self, _index: int):
-        theme_key = self.theme_box.currentData()
-        if not theme_key:
-            theme_key = "clinical"
+        theme_key = self.theme_box.currentData() or "clinical"
         self.set_theme(theme_key)
 
     def on_calibration_changed(self, _index: int):
@@ -903,7 +844,6 @@ class BuilderMainWindow(QMainWindow):
         row = self.list_widget.currentRow()
         if not (0 <= row < len(self.items)):
             return
-
         old_item = self.items[row]
         dlg = ItemEditorDialog(self, old_item)
         if dlg.exec():
@@ -915,7 +855,6 @@ class BuilderMainWindow(QMainWindow):
         row = self.list_widget.currentRow()
         if not (0 <= row < len(self.items)):
             return
-
         item = self.items[row]
         self.undo_stack.push(DeleteItemCommand(self, row, item))
         self.statusBar().showMessage("Item deleted", 1500)
@@ -975,7 +914,6 @@ class BuilderMainWindow(QMainWindow):
         self.current_path = Path(path)
         self.refresh()
         self.statusBar().showMessage("Loaded", 1500)
-
 
 # ------------------ main ------------------
 
