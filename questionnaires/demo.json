@@ -8,7 +8,7 @@
   "dwell_time": 1200,
   "blink_time": 350,
   "gazepoint_blocked": false,
-  "theme": "oled_dark",
+  "theme": "clinical",
   "items": [
     {
       "type": "info",

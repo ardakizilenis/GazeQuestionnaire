@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QListWidget, QListWidgetItem, QTextEdit, QComboBox, QSpinBox,
     QFileDialog, QMessageBox, QFormLayout, QDialog, QDialogButtonBox,
-    QLabel, QToolBar, QStyle, QStyledItemDelegate, QCheckBox, QGroupBox, QSizePolicy, QLineEdit
+    QLabel, QToolBar, QStyle, QStyledItemDelegate, QCheckBox, QGroupBox, QSizePolicy, QLineEdit, QToolButton
 )
 
 from tools.themes import TYPE_COLOR_THEMES
@@ -95,6 +95,9 @@ def normalize_theme(theme_key: str) -> str:
 
 # ------------------ DnD list widget ------------------
 
+from PySide6.QtCore import Qt, Signal, QEvent
+from PySide6.QtWidgets import QListWidget
+
 class ReorderListWidget(QListWidget):
     orderChanged = Signal()
 
@@ -107,6 +110,30 @@ class ReorderListWidget(QListWidget):
         self.setDropIndicatorShown(True)
         self.setDefaultDropAction(Qt.MoveAction)
         self.setDragDropMode(QListWidget.InternalMove)
+
+        self.viewport().setMouseTracking(True)
+        self.viewport().installEventFilter(self)
+        self.viewport().setCursor(Qt.ArrowCursor)
+
+    def eventFilter(self, obj, event):
+        if obj is self.viewport():
+            et = event.type()
+
+            if et in (QEvent.MouseMove, QEvent.Enter):
+                over_item = self.itemAt(event.pos()) is not None
+                self.viewport().setCursor(Qt.OpenHandCursor if over_item else Qt.ArrowCursor)
+
+
+        return super().eventFilter(obj, event)
+
+    def startDrag(self, supportedActions):
+        self.viewport().setCursor(Qt.ClosedHandCursor)
+        try:
+            super().startDrag(supportedActions)
+        finally:
+            pos = self.viewport().mapFromGlobal(self.cursor().pos())
+            over_item = self.itemAt(pos) is not None
+            self.viewport().setCursor(Qt.OpenHandCursor if over_item else Qt.ArrowCursor)
 
     def dropEvent(self, event):
         super().dropEvent(event)
@@ -203,6 +230,7 @@ class ItemEditorDialog(QDialog):
         form.addRow(self.labels_group)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
 
@@ -390,7 +418,7 @@ class BuilderMainWindow(QMainWindow):
         super().__init__()
         self.version = 1.3
         self.resize(1150, 700)
-        self.setWindowTitle("GazeQuestionnaire")
+        self.setWindowTitle("Questionnaire Builder")
 
         self.items: list[dict] = []
         self.current_path: Path | None = None
@@ -414,11 +442,11 @@ class BuilderMainWindow(QMainWindow):
     
 
     def _build_toolbar(self):
-        tb = QToolBar("Main")
-        tb.setIconSize(QSize(17, 17))
-        tb.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.tb = QToolBar("Main")
+        self.tb.setIconSize(QSize(17, 17))
+        self.tb.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
 
-        self.addToolBar(tb)
+        self.addToolBar(self.tb)
         st = self.style()
 
         # -------- Add --------
@@ -490,6 +518,7 @@ class BuilderMainWindow(QMainWindow):
         for key_calibration in CALIBRATIONS:
             self.calibration_box.addItem(key_calibration, key_calibration)
         self.calibration_box.currentIndexChanged.connect(self.on_calibration_changed)
+        self.calibration_box.setCursor(Qt.PointingHandCursor)
 
         # -------- Filter Box --------
         self.filter_box = QComboBox()
@@ -497,6 +526,7 @@ class BuilderMainWindow(QMainWindow):
         for key_filter in FILTERS:
             self.filter_box.addItem(key_filter, key_filter)
         self.filter_box.currentIndexChanged.connect(self.on_filter_changed)
+        self.filter_box.setCursor(Qt.PointingHandCursor)
 
         self.dwell_time: int = DEFAULT_DWELL_TIME
         self.dwell_spin = QSpinBox()
@@ -506,6 +536,7 @@ class BuilderMainWindow(QMainWindow):
         self.dwell_spin.setSuffix(" ms")
         self.dwell_spin.setValue(self.dwell_time)
         self.dwell_spin.valueChanged.connect(self.on_dwell_changed)
+        self.dwell_spin.setCursor(Qt.PointingHandCursor)
 
         self.blink_time: int = DEFAULT_BLINK_TIME
         self.blink_spin = QSpinBox()
@@ -515,6 +546,7 @@ class BuilderMainWindow(QMainWindow):
         self.blink_spin.setSuffix(" ms")
         self.blink_spin.setValue(self.blink_time)
         self.blink_spin.valueChanged.connect(self.on_blink_changed)
+        self.blink_spin.setCursor(Qt.PointingHandCursor)
 
         # -------- Theme Box --------
         self.theme_box = QComboBox()
@@ -525,12 +557,14 @@ class BuilderMainWindow(QMainWindow):
         if i >= 0:
             self.theme_box.setCurrentIndex(i)
         self.theme_box.currentIndexChanged.connect(self.on_theme_changed)
+        self.theme_box.setCursor(Qt.PointingHandCursor)
 
         # -------- Gazepoint Checkpoint --------
         self.cb_gazepoint = QCheckBox("Hide GP?")
         self.cb_gazepoint.setChecked(self.gazepoint_blocked)
         self.cb_gazepoint.setObjectName("CBCheckbox")
         self.cb_gazepoint.toggled.connect(self.on_gazepoint_blocked_changed)
+        self.cb_gazepoint.setCursor(Qt.PointingHandCursor)
 
         # -------- CAL/FIL vertical block --------
         cal_fil = QWidget()
@@ -544,6 +578,7 @@ class BuilderMainWindow(QMainWindow):
         row1_l.setSpacing(6)
         row1_l.addWidget(QLabel("CAL:"))
         row1_l.addWidget(self.calibration_box)
+
 
         row2 = QWidget()
         row2_l = QHBoxLayout(row2)
@@ -579,26 +614,34 @@ class BuilderMainWindow(QMainWindow):
         dwell_blink_l.addWidget(row4)
 
         # ------------- add toolbar elements here --------------
-        tb.addAction(self.act_add)
-        tb.addAction(self.act_edit)
-        tb.addAction(self.act_del)
+        actions_1 = [self.act_add, self.act_edit, self.act_del]
+        actions_2 = [self.act_undo, self.act_redo]
+        actions_3 = [self.act_open, self.act_save, self.act_new]
 
-        tb.addSeparator()
-        tb.addAction(self.act_undo)
-        tb.addAction(self.act_redo)
+        for act_1 in actions_1:
+            self.tb.addAction(act_1)
+            self.tb.widgetForAction(act_1).setCursor(Qt.PointingHandCursor)
 
-        tb.addSeparator()
-        tb.addAction(self.act_open)
-        tb.addAction(self.act_save)
-        tb.addAction(self.act_new)
+        self.tb.addSeparator()
 
-        tb.addSeparator()
-        tb.addWidget(cal_fil)
-        tb.addWidget(dwell_blink)
+        for act_2 in actions_2:
+            self.tb.addAction(act_2)
+            self.tb.widgetForAction(act_2).setCursor(Qt.PointingHandCursor)
 
-        tb.addSeparator()
-        tb.addWidget(self.cb_gazepoint)
-        tb.addWidget(self.theme_box)
+        self.tb.addSeparator()
+
+        for act_3 in actions_3:
+            self.tb.addAction(act_3)
+            self.tb.widgetForAction(act_3).setCursor(Qt.PointingHandCursor)
+
+        self.tb.addSeparator()
+
+        self.tb.addWidget(cal_fil)
+        self.tb.addWidget(dwell_blink)
+
+        self.tb.addSeparator()
+        self.tb.addWidget(self.cb_gazepoint)
+        self.tb.addWidget(self.theme_box)
 
         self.act_new.triggered.connect(self.new_json)
         self.act_open.triggered.connect(self.load_json)
@@ -756,7 +799,6 @@ class BuilderMainWindow(QMainWindow):
         return f"{idx:02d}. [{qtype} | {act}] {txt}"
 
     def refresh(self):
-        # preserve selected object identity
         selected_obj = None
         row = self.list_widget.currentRow()
         if 0 <= row < self.list_widget.count():

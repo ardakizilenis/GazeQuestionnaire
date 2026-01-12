@@ -1,5 +1,4 @@
 # tools/stylesheets.py
-# Refactor: one builder + per-theme palette. Much less duplication, easier to tweak.
 
 from __future__ import annotations
 
@@ -67,8 +66,6 @@ class ThemePalette:
 # ----------------------------
 
 def build_stylesheet(p: ThemePalette) -> str:
-    # Note: keep widget metrics mostly consistent across themes.
-    # If you need control widths: set in code, not in QSS.
     checkbox_text = p.checkbox_text or p.text
 
     list_border = ""
@@ -99,10 +96,14 @@ QToolBar {{
     spacing: 6px;
     padding: 6px;
 }}
+QToolBar::separator {{
+    background: {p.toolbar_border_rgba};
+    width: 1px;
+    margin: 6px 8px;
+}}
 QToolBar QWidget {{
     background: transparent;
 }}
-
 QToolButton {{
     background: transparent;
     border-radius: 10px;
@@ -115,9 +116,6 @@ QToolButton:hover {{
 QToolButton:pressed {{
     background: {p.toolbtn_pressed_rgba};
 }}
-
-
-
 
 /* --- List --- */
 QListWidget {{
