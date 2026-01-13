@@ -281,6 +281,7 @@ class ItemEditorDialog(QDialog):
         self.text_edit.setPlaceholderText("Question / info text...")
 
         self.duration_label = QLabel("Duration:")
+        self.activation_label = QLabel("Activation:")
 
         self.duration_spin = QSpinBox()
         self.duration_spin.setRange(1, 999)
@@ -310,7 +311,7 @@ class ItemEditorDialog(QDialog):
         form = QFormLayout()
         form.setVerticalSpacing(12)
         form.addRow("Type", self.type_box)
-        form.addRow("Activation", self.activation_row)
+        form.addRow(self.activation_label, self.activation_row)
         form.addRow("Text", self.text_edit)
         form.addRow(self.duration_label, self.duration_spin)
         form.addRow(self.labels_group)
@@ -335,7 +336,10 @@ class ItemEditorDialog(QDialog):
         self.duration_spin.setVisible(is_info)
         self.duration_label.setVisible(is_info)
 
-        self.activation_row.setVisible(qtype not in ("info", "sp_yesno", "sp_mcq", "sp_likert"))
+        is_not_sp = qtype not in ("sp_likert", "sp_mcq", "sp_yesno", "info")
+        self.activation_box.setEnabled(is_not_sp)
+        self.activation_box.setVisible(is_not_sp)
+        self.activation_label.setVisible(is_not_sp)
 
         needs_labels = qtype in ("mcq", "likert", "sp_mcq", "sp_likert")
         self.labels_group.setVisible(needs_labels)
