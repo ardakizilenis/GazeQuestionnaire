@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import time
 import csv
 from datetime import datetime
@@ -51,7 +52,7 @@ class MainWindow(QMainWindow):
         "q_toggled_area",
     ]
 
-    def __init__(self, estimator, smoother, calibration_method, filter_method, dwell_threshold, blink_threshold, gazepoint_blocked, theme, parent) -> None:
+    def __init__(self, estimator, smoother, calibration_method, filter_method, dwell_threshold, blink_threshold, gazepoint_blocked, theme, parent, file_name) -> None:
         super().__init__(parent)
 
         self.estimator = estimator
@@ -84,8 +85,9 @@ class MainWindow(QMainWindow):
         data_root = os.path.join(base_dir, "data")
         os.makedirs(data_root, exist_ok=True)
 
+        filename = re.sub(".json", "", file_name)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.run_dir = os.path.join(data_root, f"run_{timestamp}")
+        self.run_dir = os.path.join(data_root, f"{filename}_{timestamp}")
         os.makedirs(self.run_dir, exist_ok=True)
 
         self.log_filename = os.path.join(self.run_dir, "gaze_questionnaire_log.csv")

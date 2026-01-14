@@ -111,10 +111,13 @@ def qtype_to_label(qtype: str) -> str:
     return qtype.capitalize()
 
 def activation_to_label(act: str) -> str:
-    act = (act or "").capitalize()
-    if act == "Smooth_pursuit":
+    act = (act or "").strip().lower()
+    if act == "smooth_pursuit":
         return "Smooth Pursuit"
-    return act.capitalize()
+    if not act:
+        return ""
+    return act.replace("_", " ").title()
+
 
 # ------------------ DnD list widget ------------------
 
@@ -499,9 +502,10 @@ class ReorderItemsCommand(QUndoCommand):
 class BuilderMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.filename = "*"
         self.version = 1.3
         self.resize(1150, 700)
-        self.setWindowTitle("Questionnaire Builder")
+        self.update_window_title()
 
         self.items: list[dict] = []
         self.current_path: Path | None = None
@@ -519,6 +523,10 @@ class BuilderMainWindow(QMainWindow):
         self._build_ui()
 
         self.statusBar().showMessage("Ready")
+
+    def update_window_title(self):
+        shown = self.filename if self.filename else "*"
+        self.setWindowTitle(f"Questionnaire Builder ({shown})")
 
     # ---------- UI ----------
 
@@ -867,6 +875,8 @@ class BuilderMainWindow(QMainWindow):
         self.items = []
         self.gazepoint_blocked = False
         self.current_path = None
+        self.filename = "*"
+        self.update_window_title()
         self.refresh()
         self.statusBar().showMessage("New document", 1500)
         self.undo_stack.clear()
@@ -877,6 +887,8 @@ class BuilderMainWindow(QMainWindow):
             if not path:
                 return
             self.current_path = Path(path)
+            self.filename = self.current_path.name
+            self.update_window_title()
 
         try:
             self.current_path.write_text(pretty_json(self.doc()), encoding="utf-8")
@@ -894,6 +906,9 @@ class BuilderMainWindow(QMainWindow):
 
         try:
             data = json.loads(Path(path).read_text(encoding="utf-8"))
+            self.filename = str(Path(path).name)
+            self.update_window_title()
+
         except Exception as e:
             QMessageBox.warning(self, "Invalid JSON", f"Could not parse JSON:\n{e}")
             return

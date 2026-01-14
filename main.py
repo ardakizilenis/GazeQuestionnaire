@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 from contextlib import contextmanager
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QFileDialog
 
 from eyetrax import GazeEstimator
 from eyetrax.calibration import run_5_point_calibration, run_lissajous_calibration, run_9_point_calibration
@@ -26,24 +26,6 @@ def disable_destroy_all_windows():
         yield
     finally:
         cv2.destroyAllWindows = original
-
-@contextmanager
-def skip_first_destroy_window(window_name: str):
-    original = cv2.destroyWindow
-    called = False
-
-    def patched(name: str):
-        nonlocal called
-        if name == window_name and not called:
-            called = True      # ersten Aufruf ignorieren
-            return
-        return original(name)  # alle anderen normal
-
-    try:
-        cv2.destroyWindow = patched
-        yield
-    finally:
-        cv2.destroyWindow = original
 
 
 def load_json_item(from_path: str, load: str) -> Any:
@@ -66,6 +48,9 @@ def load_json_item(from_path: str, load: str) -> Any:
         case _:
             print(f"No data available for '{load}'...")
             return None
+
+def load_file_name(from_path: str) -> str:
+    return Path(from_path).name
 
 def calibrate(questionnaire: str, main_estimator: GazeEstimator) -> None:
     calibration_method = load_json_item(questionnaire,"calibration")
@@ -142,6 +127,8 @@ def main(questionnaire: str) -> None:
     calibrate(questionnaire, main_estimator)
     smoother = get_smoother(questionnaire, main_estimator)
 
+    file_name = load_file_name(questionnaire)
+
     app = QApplication([])
     window = MainWindow(
         main_estimator,
@@ -153,6 +140,7 @@ def main(questionnaire: str) -> None:
         gazepoint_blocked=load_json_item(questionnaire, "gazepoint_blocked"),
         theme=load_json_item(questionnaire, "theme"),
         parent=None,
+        file_name = file_name
     )
 
     items = load_json_item(questionnaire, "items")
