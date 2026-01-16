@@ -207,6 +207,24 @@ class CardItemDelegate(QStyledItemDelegate):
         top = r.top() + 10
         right = r.right() - 10
 
+        is_selected = bool(option.state & QStyle.State_Selected)
+        if is_selected:
+            border = QColor(fg)
+            border.setAlpha(220)
+            pen = painter.pen()
+            pen.setColor(border)
+            pen.setWidth(2)
+            painter.setPen(pen)
+            painter.setBrush(Qt.NoBrush)
+            painter.drawRoundedRect(r.adjusted(1, 1, -1, -1), 10, 10)
+            painter.setPen(Qt.NoPen)
+
+            hl = QColor(fg)
+            hl.setAlpha(25)
+            painter.setBrush(hl)
+            painter.setPen(Qt.NoPen)
+            painter.drawRoundedRect(r, 10, 10)
+
         def badge_rect_for_text(text: str, right_edge: int):
             tw = fm.horizontalAdvance(text)
             th = fm.height()

@@ -5,9 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-# ----------------------------
 # Theme definition
-# ----------------------------
 
 @dataclass(frozen=True)
 class ThemePalette:
@@ -60,10 +58,7 @@ class ThemePalette:
     checkbox_text: str | None = None
 
 
-
-# ----------------------------
 # Builder
-# ----------------------------
 
 def build_stylesheet(p: ThemePalette) -> str:
     checkbox_text = p.checkbox_text or p.text
@@ -174,6 +169,7 @@ QStatusBar {{
     background: {p.status_bg};
     border-top: 1px solid {p.status_border_rgba};
     color: {p.status_text};
+    font-size: 15px;
 }}
 
 /* --- Dialog --- */
@@ -472,9 +468,7 @@ _SIGNAL = ThemePalette(
 )
 
 
-# ----------------------------
 # Public theme functions (same API as before)
-# ----------------------------
 
 def neon_stylesheet() -> str:
     return build_stylesheet(_NEON)

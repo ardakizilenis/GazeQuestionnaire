@@ -1,0 +1,158 @@
+{
+  "meta": {
+    "title": "Gaze Questionnaire",
+    "version": 1.3
+  },
+  "calibration": "9-point",
+  "filter": "kalman",
+  "dwell_time": 1200,
+  "blink_time": 350,
+  "gazepoint_blocked": false,
+  "theme": "clinical",
+  "items": [
+    {
+      "type": "info",
+      "text": "----- SMOOTH PURSUIT SELECTION -----",
+      "duration": 5
+    },
+    {
+      "type": "info",
+      "text": "----- INSTRUCTION -----\n\nFollow the most correct-sounding answer with your gaze until Selection\n\n----- INSTRUCTION -----",
+      "duration": 7
+    },
+    {
+      "type": "info",
+      "text": "Is fire cold? (Yes/No)",
+      "duration": 5
+    },
+    {
+      "type": "sp_yesno",
+      "text": "Is fire cold?",
+      "activation": "smooth_pursuit"
+    },
+    {
+      "type": "info",
+      "text": "How would you rate your knowledge of climate change? (Likert Scale)",
+      "duration": 7
+    },
+    {
+      "type": "sp_likert",
+      "text": "How would you rate your knowledge of climate change?",
+      "activation": "smooth_pursuit",
+      "labels": [
+        "Very poor",
+        "Poor",
+        "Fair",
+        "Good",
+        "Excelent"
+      ]
+    },
+    {
+      "type": "info",
+      "text": "Which of the following shapes have four sides? (Multiple Choice)",
+      "duration": 5
+    },
+    {
+      "type": "sp_mcq",
+      "text": "Which of the shapes have four sides?",
+      "activation": "smooth_pursuit",
+      "labels": [
+        "a) Rectangle",
+        "b) Triangle",
+        "c) Circle",
+        "d) Square"
+      ]
+    },
+    {
+      "duration": 5,
+      "text": "Is the Earth flat? (Yes/No)",
+      "type": "info"
+    },
+    {
+      "type": "sp_yesno",
+      "text": "Is the Earth flat?",
+      "activation": "smooth_pursuit"
+    },
+    {
+      "type": "info",
+      "text": "How familiar are you with eyetracking technologies? (Likert Scale)",
+      "duration": 5
+    },
+    {
+      "type": "sp_likert",
+      "text": "How familiar are you with eyetracking technologies?",
+      "activation": "smooth_pursuit",
+      "labels": [
+        "Very unfamiliar",
+        "Unfamiliar",
+        "Somewhat familiar",
+        "Familiar",
+        "Very familiar"
+      ]
+    },
+    {
+      "type": "info",
+      "text": "What 2 colors have to be mixed to get purple? (Multiple Choice)",
+      "duration": 5
+    },
+    {
+      "type": "sp_mcq",
+      "text": "What 2 colors have to be mixed to get purple?",
+      "activation": "smooth_pursuit",
+      "labels": [
+        "a) Green",
+        "b) Red",
+        "c) Blue",
+        "d) Yellow"
+      ]
+    },
+    {
+      "type": "info",
+      "text": "How much do you agree: \n\n'Education contributes to societal development.'\n\n(Likert Scale)",
+      "duration": 5
+    },
+    {
+      "type": "sp_likert",
+      "text": "Education contributes to societal development.",
+      "activation": "smooth_pursuit",
+      "labels": [
+        "Strongly Disagree",
+        "Disagree",
+        "Neutral",
+        "Agree",
+        "Strongly Agree"
+      ]
+    },
+    {
+      "type": "info",
+      "text": "Do Humans need Oxygen to Survive? (Yes/No)",
+      "duration": 5
+    },
+    {
+      "type": "sp_yesno",
+      "text": "Do Humans need Oxygen to Survive?",
+      "activation": "smooth_pursuit"
+    },
+    {
+      "type": "info",
+      "text": "Which one is the largest ocean on Earth? (Multple Choice)",
+      "duration": 5
+    },
+    {
+      "type": "sp_mcq",
+      "text": "What is the largest ocean on Earth?",
+      "activation": "smooth_pursuit",
+      "labels": [
+        "a) Atlantic Ocean",
+        "b) Indian Ocean",
+        "c) Arctic Ocean",
+        "d) Pacific Ocean"
+      ]
+    },
+    {
+      "type": "info",
+      "text": "Thank you! 🏁",
+      "duration": 2
+    }
+  ]
+}
