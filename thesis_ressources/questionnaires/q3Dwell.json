@@ -1,0 +1,188 @@
+{
+  "meta": {
+    "title": "Gaze Questionnaire",
+    "version": 1.3
+  },
+  "calibration": "9-point",
+  "filter": "kalman",
+  "dwell_time": 1200,
+  "blink_time": 350,
+  "gazepoint_blocked": false,
+  "theme": "clinical",
+  "items": [
+    {
+      "duration": 5,
+      "text": "----- DWELL SELECTION -----",
+      "type": "info"
+    },
+    {
+      "duration": 7,
+      "text": "----- INSTRUCTION -----\n\nDwell 1.2 seconds on the most correct-sounding answer to select\n\n----- INSTRUCTION -----",
+      "type": "info"
+    },
+    {
+      "duration": 5,
+      "text": "Which day comes after Saturday? (Text)",
+      "type": "info"
+    },
+    {
+      "activation": "dwell",
+      "text": "Which day comes after Saturday?",
+      "type": "textgrid"
+    },
+    {
+      "type": "info",
+      "text": "What season comes after spring? (Multiple Choice)",
+      "duration": 5
+    },
+    {
+      "type": "mcq",
+      "text": "What season comes after spring?",
+      "activation": "dwell",
+      "labels": [
+        "a) Autums",
+        "b) Summer",
+        "c) Winter",
+        "d) Monsoon"
+      ]
+    },
+    {
+      "duration": 5,
+      "text": "Yes or No:\n\nIs one hour longer than 30 minutes?",
+      "type": "info"
+    },
+    {
+      "activation": "dwell",
+      "text": "Is one hour longer than 30 minutes?",
+      "type": "yesno"
+    },
+    {
+      "duration": 7,
+      "text": "How important is climate change as a topic for you personally? (Likert Scale)",
+      "type": "info"
+    },
+    {
+      "activation": "dwell",
+      "labels": [
+        "Very unimportant",
+        "Unimportant",
+        "Neutral",
+        "Important",
+        "Very Important"
+      ],
+      "text": "How important is climate change as a topic for you personally?",
+      "type": "likert"
+    },
+    {
+      "duration": 5,
+      "text": "Does the sun rise in the west? (Yes/No)",
+      "type": "info"
+    },
+    {
+      "activation": "dwell",
+      "text": "Does the sun rise in the west?",
+      "type": "yesno"
+    },
+    {
+      "duration": 5,
+      "text": "'How satisfied are you studying at the LMU Munich' (Likert Scale)",
+      "type": "info"
+    },
+    {
+      "activation": "dwell",
+      "labels": [
+        "Very dissatisfied",
+        "Dissatisfied",
+        "Neutral",
+        "Satisfied",
+        "Very Satisfied"
+      ],
+      "text": "How satisfied are you studying at the LMU Munich?",
+      "type": "likert"
+    },
+    {
+      "duration": 5,
+      "text": "What gas do plants absorb from the air? (Multiple Choice)",
+      "type": "info"
+    },
+    {
+      "activation": "dwell",
+      "labels": [
+        "a) Oxygen",
+        "b) Nitrogen",
+        "c) Carbon dioxide",
+        "d) Helium"
+      ],
+      "text": "What gas do plants absorb from the air?",
+      "type": "mcq"
+    },
+    {
+      "duration": 5,
+      "text": "Which color is grass? (Text)",
+      "type": "info"
+    },
+    {
+      "activation": "dwell",
+      "text": "Which color is grass?",
+      "type": "textgrid"
+    },
+    {
+      "duration": 7,
+      "text": "How much do you personally agree?\n\n'Reading has no impact on general knowledge.'",
+      "type": "info"
+    },
+    {
+      "activation": "dwell",
+      "labels": [
+        "Strongly Disagree",
+        "Disagree",
+        "Neutral",
+        "Agree",
+        "Strongly Agree"
+      ],
+      "text": "'Reading has no impact on general knowledge'",
+      "type": "likert"
+    },
+    {
+      "duration": 5,
+      "text": "Is snow a form of frozen water?",
+      "type": "info"
+    },
+    {
+      "activation": "dwell",
+      "text": "Is snow a form of frozen water?",
+      "type": "yesno"
+    },
+    {
+      "duration": 5,
+      "text": "Which of the following animals live in the water?",
+      "type": "info"
+    },
+    {
+      "activation": "dwell",
+      "labels": [
+        "a) Shark",
+        "b) Eagle",
+        "c) Dolphin",
+        "d) Snake"
+      ],
+      "text": "Which of the following animals live in the water? (Multiple Choice)",
+      "type": "mcq"
+    },
+    {
+      "duration": 5,
+      "text": "Which color is snow? (Text)",
+      "type": "info"
+    },
+    {
+      "activation": "dwell",
+      "text": "Which color is snow?",
+      "type": "textgrid"
+    },
+    {
+      "duration": 2,
+      "text": "Thank you! 🏁",
+      "type": "info"
+    }
+  ]
+}

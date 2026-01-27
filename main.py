@@ -123,6 +123,8 @@ def get_smoother(questionnaire, main_estimator):
             return smoother
 
 def main(questionnaire: str) -> None:
+    participant_id = input("Participant ID / Name: ").strip()
+    run_order = input("Run order: ").strip()
     main_estimator = GazeEstimator()
     calibrate(questionnaire, main_estimator)
     smoother = get_smoother(questionnaire, main_estimator)
@@ -133,6 +135,8 @@ def main(questionnaire: str) -> None:
     window = MainWindow(
         main_estimator,
         smoother,
+        participant_id=participant_id,
+        run_order=run_order,
         calibration_method=load_json_item(questionnaire, "calibration"),
         filter_method=load_json_item(questionnaire, "filter"),
         dwell_threshold=load_json_item(questionnaire, "dwell_time"),

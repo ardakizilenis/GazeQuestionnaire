@@ -6,11 +6,11 @@ import cv2
 import numpy as np
 from PySide6.QtCore import QThread, Signal
 
-
 class EyeTrackerWorker(QThread):
     gaze_updated = Signal(float, float)
     status_updated = Signal(str)
     blink_state = Signal(bool)
+
 
     def __init__(self, estimator, smoother, parent=None):
         super().__init__(parent)
@@ -52,4 +52,5 @@ class EyeTrackerWorker(QThread):
             self.gaze_updated.emit(float(x_pred), float(y_pred))
 
         cap.release()
+
         print("EyeTrackerWorker terminated")

@@ -8,7 +8,7 @@
   "dwell_time": 1100,
   "blink_time": 350,
   "gazepoint_blocked": false,
-  "theme": "clinical",
+  "theme": "oled_dark",
   "items": [
     {
       "type": "info",
@@ -135,16 +135,6 @@
         "green",
         "yellow"
       ]
-    },
-    {
-      "type": "info",
-      "text": "QUESTION 8:\nDescribe your experience with Gaze Questionnaire with one Word.",
-      "duration": 7
-    },
-    {
-      "type": "textgrid",
-      "text": "Describe your experience with Gaze Questionnaire with one Word.",
-      "activation": "blink"
     },
     {
       "type": "info",

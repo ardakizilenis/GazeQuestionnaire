@@ -24,37 +24,61 @@ from widgets.question_types.YesNoQuestionWidget import YesNoQuestionWidget
 
 class MainWindow(QMainWindow):
     LOG_COLUMNS = [
-        "question_index",
-        "question_type",
-        "activation_mode",
-        "question_text",
-        "result",
-        "rt_sec",
-        "n_toggles",
-        "n_resets",
-        "n_backspaces",
-        "calibration",
-        "filter",
-        "dwell_threshold_ms",
-        "blink_threshold_ms",
-        "gazepoint_blocked",
-        "theme",
+        "ParticipantID",
+        "FileName",
+        "RunOrder",
+        "TimeNeeded",
+
+        "QuestionIndex",
+        "Activation",
+        "QuestionType",
+        "QuestionText",
+        "Answer",
+
+        "TotalToggles",
+        "TotalResets",
+        "TotalBackspaces",
+
+        "Calibration",
+        "Filter",
+        "DwellTime_ms",
+        "BlinkTime_ms",
+        "Gazepoint_Blocked",
+        "Theme"
     ]
 
     CLICK_COLUMNS = [
-        "q_index",
-        "q_type",
-        "q_activation",
-        "q_labels",
-        "q_toggle_index",
-        "q_click_time_no_reset",
-        "q_click_time",
-        "q_toggled_area",
+        # Scientific (for Studies)
+        "ParticipantID",
+        "FileName",
+        "RunOrder",
+        "ClickTime",
+        "ClickTime_NoReset",
+
+        # Question
+        "QuestionIndex",
+        "Activation",
+        "QuestionType",
+        "QuestionText",
+
+        # Toggles (Activity)
+        "TogglesCount",
+        "ToggledArea",
+
+        # Technical
+        "Calibration",
+        "Filter",
+        "DwellTime_ms",
+        "BlinkTime_ms",
+        "Gazepoint_Blocked",
     ]
 
-    def __init__(self, estimator, smoother, calibration_method, filter_method, dwell_threshold, blink_threshold, gazepoint_blocked, theme, parent, file_name) -> None:
+    def __init__(self, estimator, smoother, participant_id, run_order, calibration_method, filter_method, dwell_threshold, blink_threshold, gazepoint_blocked, theme, parent, file_name) -> None:
         super().__init__(parent)
 
+        self.filename = file_name
+        self.participant = participant_id
+        self.run_order = run_order
         self.estimator = estimator
         self.smoother = smoother
         self.calibration = calibration_method
@@ -87,11 +111,11 @@ class MainWindow(QMainWindow):
 
         filename = re.sub(".json", "", file_name)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.run_dir = os.path.join(data_root, f"{filename}_{timestamp}")
+        self.run_dir = os.path.join(data_root, f"{participant_id}_run{run_order}_{filename}_{timestamp}")
         os.makedirs(self.run_dir, exist_ok=True)
 
-        self.log_filename = os.path.join(self.run_dir, "gaze_questionnaire_log.csv")
-        self.click_filename = os.path.join(self.run_dir, "gaze_questionnaire_clicks.csv")
+        self.log_filename = os.path.join(self.run_dir, f"{participant_id}_run{run_order}_{filename}_logs.csv")
+        self.click_filename = os.path.join(self.run_dir, f"{participant_id}_run{run_order}_{filename}_clicks.csv")
 
     def info(self, text: str, duration_sec: int) -> None:
         self.question_queue.append(
@@ -131,7 +155,6 @@ class MainWindow(QMainWindow):
         if self.worker is None:
             self.worker = EyeTrackerWorker(self.estimator, self.smoother)
             self.worker.start()
-
         self.current_index = -1
         self.show_next_question()
 
@@ -271,7 +294,6 @@ class MainWindow(QMainWindow):
             "index": logical_index,
             "type": meta["type"],
             "text": meta.get("text", ""),
-            "labels": meta.get("labels"),
             "activation": meta.get("activation", ""),
             "dwell_threshold_ms": self.dwell_threshold,
             "blink_threshold_ms": self.blink_threshold,
@@ -298,14 +320,29 @@ class MainWindow(QMainWindow):
 
         self.click_rows.append(
             {
-                "q_index": meta.get("index"),
-                "q_type": meta.get("type"),
-                "q_activation": meta.get("activation", ""),
-                "q_labels": repr(meta.get("labels")),
-                "q_toggle_index": int(toggle_index),
-                "q_click_time_no_reset": round(time_from_start, 3),
-                "q_click_time": None if time_since_last_click is None else round(time_since_last_click, 3),
-                "q_toggled_area": str(toggled_area),
+                # Scientific
+                "ParticipantID": self.participant,
+                "FileName": re.sub(".json", "", self.filename),
+                "RunOrder": self.run_order,
+                "ClickTime": None if time_since_last_click is None else round(time_since_last_click, 3),
+                "ClickTime_NoReset": round(time_from_start, 3),
+
+                # Question
+                "QuestionIndex": meta.get("index"),
+                "Activation": meta.get("activation", ""),
+                "QuestionType": meta.get("type"),
+                "QuestionText": meta.get("text"),
+
+                # Toggles
+                "TogglesCount": int(toggle_index),
+                "ToggledArea": str(toggled_area),
+
+                # Technical
+                "Calibration": meta.get("calibration"),
+                "Filter": meta.get("filter"),
+                "DwellTime_ms": meta.get("dwell_threshold_ms"),
+                "BlinkTime_ms": meta.get("blink_threshold_ms"),
+                "Gazepoint_Blocked": meta.get("gazepoint_blocked"),
             }
         )
 
@@ -320,21 +357,27 @@ class MainWindow(QMainWindow):
 
         if qtype != "info" and widget is not None:
             log_entry = {
-                "question_index": qnum,
-                "question_type": qtype,
-                "activation_mode": meta.get("activation"),
-                "question_text": meta.get("text"),
-                "result": repr(result),
-                "rt_sec": None if rt_sec is None else round(rt_sec, 3),
-                "n_toggles": getattr(widget, "log_toggles", 0),
-                "n_resets": getattr(widget, "log_resets", 0),
-                "n_backspaces": getattr(widget, "log_backspaces", 0),
-                "calibration": meta.get("calibration"),
-                "filter":meta.get("filter"),
-                "dwell_threshold_ms": meta.get("dwell_threshold_ms"),
-                "blink_threshold_ms": meta.get("blink_threshold_ms"),
-                "gazepoint_blocked": meta.get("gazepoint_blocked"),
-                "theme": meta.get("theme")
+                "ParticipantID": self.participant,
+                "FileName": re.sub(".json", "", self.filename),
+                "RunOrder": self.run_order,
+                "TimeNeeded": None if rt_sec is None else round(rt_sec, 3),
+
+                "QuestionIndex": qnum,
+                "Activation": meta.get("activation"),
+                "QuestionType": qtype,
+                "QuestionText": meta.get("text"),
+                "Answer": repr(result),
+
+                "TotalToggles": getattr(widget, "log_toggles", 0),
+                "TotalResets": getattr(widget, "log_resets", 0),
+                "TotalBackspaces": getattr(widget, "log_backspaces", 0),
+
+                "Calibration": meta.get("calibration"),
+                "Filter":meta.get("filter"),
+                "DwellTime_ms": meta.get("dwell_threshold_ms"),
+                "BlinkTime_ms": meta.get("blink_threshold_ms"),
+                "Gazepoint_Blocked": meta.get("gazepoint_blocked"),
+                "Theme": meta.get("theme")
             }
             self.log_rows.append(log_entry)
 
@@ -385,7 +428,6 @@ class MainWindow(QMainWindow):
             print("Error writing Click-Logs:", e)
 
     def finish_questionnaire(self) -> None:
-
         print("Questionnaire terminated. Loggs written and Question finished.")
 
         if self.worker is not None and self.worker.isRunning():

@@ -257,27 +257,27 @@ Each `run` creates a new directory:
 
 ```bash
 /data
-└── /run_YYYYMMDD_HHMMSS
-    ├── gaze_questionnaire_clicks.csv
-    └── gaze_questionnaire_log.csv
+└── /participantName_runX_questionnaireName_timestamp
+    ├── participantName_runX_questionnaire_clicks.csv
+    └── participantName_runX_questionnaire_logs.csv
 ```
 
 **gaze_questionnaire_clicks.csv**
 
 One line added per Click with following logs:
 
-| `q_index`      | `q_type`      |   `q_activation`  | `q_labels` | `q_toggle_index` |  `q_click_time_no_reset` | `q_click_time` |  `q_toggled_area` |
-|----------------|:-------------:|------------------:|--------------------------------:|-----------------------:|----------------------------------------:|---------------------------:|----------------------------------:|
-| Question Index | Question Type | Activation Method | Labels (of MCQ/Likert) if given | Counts all the Toggles | Click Timer withour resetting per click | Time needed for each click | Toggled Area/Answer when clicking |
+|                       `ParticipantID`                       |         `FileName`         |                                        `RunOrder`                                         |        `ClickTime`         |                    `ClickTime_NoReset`                     | `QuestionIndex`  |            `Activation`            |                `QuestionType`                 |     `QuestionText`      |             `TogglesCount`             |           `Toggled Area`            |                      `Calibration`                       |                           `Filter`                           |    `DwellTime_ms`     |    `BlinkTime_ms`     |                 `GazePoint_Blocked`                 |
+|:-----------------------------------------------------------:|:--------------------------:|:-----------------------------------------------------------------------------------------:|:--------------------------:|:----------------------------------------------------------:|:----------------:|:----------------------------------:|:---------------------------------------------:|:-----------------------:|:--------------------------------------:|:-----------------------------------:|:--------------------------------------------------------:|:------------------------------------------------------------:|:---------------------:|:---------------------:|:---------------------------------------------------:|
+| Name/ID of Participant (asked before Questionnaire starts)  | Name of the Questionnaire  | Order of the current run (for multiple Questionnaires, asked before Questionnaire starts) | Time needed for the Click  |  Timestate after each click (no reseting the click timer)  |  Question Index  | Activation Method (Dwell/Blink/SP) | Type of the Question (MCQ/Likert/Text/YesNo)  | Prompt of the Question  | Counted for the Toggles on each Click  | Toggled Area on the specific Click  | Used calibration Method (9-point / 5-point / lissajous)  | Filter Method used (Kalman Filter / KDE Filter / No Filter)  | Dwell Time Threshold  | Blink Time Threshold  | Boolean Value, if the Gazepoint was Blocked or not? |
 
 
 **gaze_questionnaire_log.csv**
 
 One line added per Submit with following logs:
 
-| `question_index` | `question_type` | `activation_mode` |   `question_text` |     `result` |                 `rt_sec` |         `n_toggles` |                              `n_resets` |                                      `n_backspaces` |                                              `calibration` |                                         `filter` |              `dwell_threshold_ms` |              `blink_threshold_ms` |          `gazepoint_blocked` |       `theme` |
-|------------------|:---------------:|------------------:|------------------:|-------------:|-------------------------:|--------------------:|----------------------------------------:|----------------------------------------------------:|-----------------------------------------------------------:|-------------------------------------------------:|----------------------------------:|----------------------------------:|-----------------------------:|--------------:|
-| Question Index   |  Question Type  | Activation Method | Question / Prompt | Answer given | Needed Time per Question | Number of toggles   | Number of Resets (Only Multiple Choice) | Number of Times clicked Backspace (Only Text Input) | Applied Calibration Method (9-point / 5-point / lassijous) | Applied Filter Method (kalman / kde / no-filter) | Applied Dwell Threshold to Select | Applied Blink Threshold to Select | Applied Gazepoint-Block Flag | Applied Theme |
+|                       `ParticipantID`                        |        `FileName`         |                                        `RunOrder`                                         |            `TimeNeeded`             |        `QuestionIndex`         |            `Activation`             |                `QuestionType`                 |     `QuestionText`      |            `Answer`             |                 `TotalToggles`                  |                            `TotalResets`                             |                          `TotalBackspaces` |                      `Calibration`                      |                          `Filter`                          |    `DwellTime_ms`    |    `BlinkTime_ms`    |                 `GazePoint_Blocked`                 |    `Theme`     |
+|:------------------------------------------------------------:|:-------------------------:|:-----------------------------------------------------------------------------------------:|:-----------------------------------:|:------------------------------:|:-----------------------------------:|:---------------------------------------------:|:-----------------------:|:-------------------------------:|:-----------------------------------------------:|:--------------------------------------------------------------------:|-------------------------------------------:|:-------------------------------------------------------:|:----------------------------------------------------------:|:--------------------:|:--------------------:|:---------------------------------------------------:|:--------------:|
+|  Name/ID of Participant (asked before Questionnaire starts)  | Name of the Questionnaire | Order of the current run (for multiple Questionnaires, asked before Questionnaire starts) | Total time needed for each Question | Question Index of the Question | Activation Method (Dwell/Blink/SP)  | Type of the Question (MCQ/Likert/Text/YesNo)  | Prompt of the Question  | Given Answer of the Participant | Number of the toggles in Total for the Question | Number of total resets (only in MultipleChoice with Blink and Dwell) | Number of total Backspaces (only for Text) | Used calibration Method (9-point / 5-point / lissajous) |Filter Method used (Kalman Filter / KDE Filter / No Filter) | Dwell Time Threshold | Blink Time Threshold | Boolean Value, if the Gazepoint was Blocked or not? | Applied Theme  |
 
 ---
 

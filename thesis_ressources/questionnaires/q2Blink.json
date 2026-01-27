@@ -1,0 +1,188 @@
+{
+  "meta": {
+    "title": "Gaze Questionnaire",
+    "version": 1.3
+  },
+  "calibration": "9-point",
+  "filter": "kalman",
+  "dwell_time": 1200,
+  "blink_time": 350,
+  "gazepoint_blocked": false,
+  "theme": "clinical",
+  "items": [
+    {
+      "type": "info",
+      "text": "----- BLINK SELECTION -----",
+      "duration": 5
+    },
+    {
+      "type": "info",
+      "text": "----- INSTRUCTION -----\n\nLong Blink 350 Milliseconds on the most correct-sounding answer to select\n\n----- INSTRUCTION -----",
+      "duration": 7
+    },
+    {
+      "type": "info",
+      "text": "Is fire cold? (Yes/No)",
+      "duration": 5
+    },
+    {
+      "type": "yesno",
+      "text": "Is fire cold?",
+      "activation": "blink"
+    },
+    {
+      "type": "info",
+      "text": "Enter one word:\n\nWhat planet do people live on?",
+      "duration": 5
+    },
+    {
+      "type": "textgrid",
+      "text": "What planet do people live on?",
+      "activation": "blink"
+    },
+    {
+      "type": "info",
+      "text": "How would you rate your knowledge of climate change? (Likert Scale)",
+      "duration": 7
+    },
+    {
+      "type": "likert",
+      "text": "How would you rate your knowledge of climate change?",
+      "activation": "blink",
+      "labels": [
+        "Very poor",
+        "Poor",
+        "Fair",
+        "Good",
+        "Excelent"
+      ]
+    },
+    {
+      "type": "info",
+      "text": "Which of the following shapes have four sides? (Multiple Choice)",
+      "duration": 5
+    },
+    {
+      "type": "mcq",
+      "text": "Which of the shapes have four sides?",
+      "activation": "blink",
+      "labels": [
+        "a) Rectangle",
+        "b) Triangle",
+        "c) Circle",
+        "d) Square"
+      ]
+    },
+    {
+      "duration": 5,
+      "text": "Is the Earth flat? (Yes/No)",
+      "type": "info"
+    },
+    {
+      "type": "yesno",
+      "text": "Is the Earth flat?",
+      "activation": "blink"
+    },
+    {
+      "type": "info",
+      "text": "How familiar are you with eyetracking technologies? (Likert Scale)",
+      "duration": 5
+    },
+    {
+      "type": "likert",
+      "text": "How familiar are you with eyetracking technologies?",
+      "activation": "blink",
+      "labels": [
+        "Very unfamiliar",
+        "Unfamiliar",
+        "Somewhat familiar",
+        "Familiar",
+        "Very familiar"
+      ]
+    },
+    {
+      "type": "info",
+      "text": "What 2 colors have to be mixed to get purple? (Multiple Choice)",
+      "duration": 5
+    },
+    {
+      "type": "mcq",
+      "text": "What 2 colors have to be mixed to get purple?",
+      "activation": "blink",
+      "labels": [
+        "a) Green",
+        "b) Red",
+        "c) Blue",
+        "d) Yellow"
+      ]
+    },
+    {
+      "duration": 5,
+      "text": "What animal says “meow”? (Text)",
+      "type": "info"
+    },
+    {
+      "type": "textgrid",
+      "text": "What animal says “meow”?",
+      "activation": "blink"
+    },
+    {
+      "type": "info",
+      "text": "How much do you agree: \n\n'Education contributes to societal development.'\n\n(Likert Scale)",
+      "duration": 5
+    },
+    {
+      "type": "likert",
+      "text": "Education contributes to societal development.",
+      "activation": "blink",
+      "labels": [
+        "Strongly Disagree",
+        "Disagree",
+        "Neutral",
+        "Agree",
+        "Strongly Agree"
+      ]
+    },
+    {
+      "type": "info",
+      "text": "Do Humans need Oxygen to Survive? (Yes/No)",
+      "duration": 5
+    },
+    {
+      "type": "yesno",
+      "text": "Do Humans need Oxygen to Survive?",
+      "activation": "blink"
+    },
+    {
+      "type": "info",
+      "text": "Which one is the largest ocean on Earth? (Multple Choice)",
+      "duration": 5
+    },
+    {
+      "type": "mcq",
+      "text": "What is the largest ocean on Earth?",
+      "activation": "blink",
+      "labels": [
+        "a) Atlantic Ocean",
+        "b) Indian Ocean",
+        "c) Arctic Ocean",
+        "d) Pacific Ocean"
+      ]
+    },
+    {
+      "duration": 5,
+      "text": "What is the day after Monday? (Text)",
+      "type": "info"
+    },
+    {
+      "type": "textgrid",
+      "text": "What is the day after Monday?",
+      "activation": "blink"
+    },
+    {
+      "type": "info",
+      "text": "Thank you! 🏁",
+      "duration": 2
+    }
+  ]
+}
