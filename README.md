@@ -79,6 +79,8 @@ gq-run demo
 
 
 Execution flow:
+- Asking for Participant Name
+- Asking for Run Order (useful for multiple questionnaires)
 - Selected Kalibration Method
 - Selected Filter Method
 - Fullscreen questionnaire with Questions from the JSON Questionnaire
@@ -262,7 +264,7 @@ Each `run` creates a new directory:
     └── participantName_runX_questionnaire_logs.csv
 ```
 
-**gaze_questionnaire_clicks.csv**
+**participantName_runX_questionnaire_clicks.csv**
 
 One line added per Click with following logs:
 
@@ -271,7 +273,7 @@ One line added per Click with following logs:
 | Name/ID of Participant (asked before Questionnaire starts)  | Name of the Questionnaire  | Order of the current run (for multiple Questionnaires, asked before Questionnaire starts) | Time needed for the Click  |  Timestate after each click (no reseting the click timer)  |  Question Index  | Activation Method (Dwell/Blink/SP) | Type of the Question (MCQ/Likert/Text/YesNo)  | Prompt of the Question  | Counted for the Toggles on each Click  | Toggled Area on the specific Click  | Used calibration Method (9-point / 5-point / lissajous)  | Filter Method used (Kalman Filter / KDE Filter / No Filter)  | Dwell Time Threshold  | Blink Time Threshold  | Boolean Value, if the Gazepoint was Blocked or not? |
 
 
-**gaze_questionnaire_log.csv**
+**participantName_runX_questionnaire_logs.csv**
 
 One line added per Submit with following logs:
 
@@ -283,16 +285,13 @@ One line added per Submit with following logs:
 
 ## Question Types
 
-| Type        | Description                      | Labels | Activation     |
-| ----------- |:--------------------------------:| ------:| --------------:|
-| `info`      | Timed information screen         | -      |                |
-| `yesno`     | Binary choice                    | -      | blink/dwell    |
-| `mcq`       | Multiple Choice                  | 4      | blink / dwell  |
-| `likert`    | Likert Scales                    | 5      | blink / dwell  |
-| `textgrid`  | Gaze-based text input            | -      | blink / dwell  |
-| `sp_yesno`  | Smooth Pursuit Yes/No            | -      | smooth_pursuit |
-| `sp_mcq`    | Smooth Pursuit Multiple Choice   | 4      | smooth_pursuit |
-| `sp_likert` | Smooth Pursuit Likert Scale      | 5      | smooth_pursuit |
+| Type        |       Description        | Labels |                     Activation |
+| ----------- |:------------------------:| ------:|-------------------------------:|
+| `info`      | Timed Information screen | -      |                                |
+| `yesno`     |  Binary Yes/No Question  | -      | Blink / Dwell / Smooth Pursuit |
+| `mcq`       | Multiple Choice Question | 4      | Blink / Dwell / Smooth Pursuit |
+| `likert`    |       Likert Scale       | 5      | Blink / Dwell / Smooth Pursuit |
+| `textgrid`  |        Text Input        | -      |                  Blink / Dwell |
 
 ---
 
