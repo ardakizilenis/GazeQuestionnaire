@@ -325,6 +325,7 @@ One line added per Submit with following logs:
 ---
 
 ## License
-
 Intended for academic and research use.
 Please contact the [Author](https://www.ardakizilenis.com/contact-en) before any commercial use.
+
+© 2026 Isik Arda Kizilenis. All rights reserved.
