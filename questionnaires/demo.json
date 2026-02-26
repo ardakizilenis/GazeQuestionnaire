@@ -8,12 +8,12 @@
     "filter": "kalman",
     "dwell_time": 1100,
     "blink_time": 350,
-    "dense_rows": 3,
-    "dense_col": 4,
+    "dense_rows": 5,
+    "dense_col": 5,
     "kde_confidence": 0.5,
     "ema_strength": 0.25,
     "gazepoint_blocked": false,
-    "theme": "clinical"
+    "theme": "oled_dark"
   },
   "items": [
     {
