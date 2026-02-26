@@ -5,7 +5,7 @@ The system enables hands-free answering of questionnaires and logs fine-grained 
 
 This project is intended for **HCI / Eye-Tracking research**, usability studies, and experimental evaluation of alternative input modalities.
 
-Download latest version as zip >> [here](https://github.com/ardakizilenis/GazeQuestionnaire/archive/refs/tags/v1.4.0.zip) <<
+ \>\> [Download latest version](https://github.com/ardakizilenis/GazeQuestionnaire/archive/refs/tags/v1.4.0.zip) <<
 
 ---
 
