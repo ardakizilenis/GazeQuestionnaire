@@ -6,12 +6,12 @@
   "params": {
     "calibration": "dense",
     "filter": "kalman",
-    "dwell_time": 1300,
-    "blink_time": 300,
-    "dense_rows": 1,
-    "dense_col": 1,
-    "kde_confidence": 0.6,
-    "ema_strength": 0.6,
+    "dwell_time": 1100,
+    "blink_time": 350,
+    "dense_rows": 3,
+    "dense_col": 4,
+    "kde_confidence": 0.5,
+    "ema_strength": 0.25,
     "gazepoint_blocked": false,
     "theme": "clinical"
   },
