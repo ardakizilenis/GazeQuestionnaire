@@ -100,13 +100,13 @@ Execution flow:
 
 ### `gq-run`-Flags
 
-| Command                |                                                   Description                                                   |
-|:-----------------------|:---------------------------------------------------------------------------------------------------------------:|
+| Command                | Description                                                                                                     |
+|:-----------------------|:----------------------------------------------------------------------------------------------------------------|
 | `qg-run questionnaire` | Searchs for a Questionnaire File `questionnaire.json` and runs the questionnaire, if it is in the proper format |
-| `gq-run --builder`     |          Runs the Questionnaire Builder/Editor Tool to create questionnaire JSONs in the proper Format          |
-| `gq-run --list`        |                    Shows all the executable Questionnaires in the `questionnaires`-Directory                    |
-| `gq-run --version`     |                                 Displays the current GazeQuestionnaire Version                                  |
-| `gq-run --help`        |                                  Shows the Help Menu for all `gq-run`-Commands                                  |
+| `gq-run --builder`     | Runs the Questionnaire Builder/Editor Tool to create questionnaire JSONs in the proper Format                   |
+| `gq-run --list`        | Shows all the executable Questionnaires in the `questionnaires`-Directory                                       |
+| `gq-run --version`     | Displays the current GazeQuestionnaire Version                                                                  |
+| `gq-run --help`        | Shows the Help Menu for all `gq-run`-Commands                                                                   |
 
 ---
 
