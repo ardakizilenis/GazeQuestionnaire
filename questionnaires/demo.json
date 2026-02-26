@@ -1,14 +1,20 @@
 {
   "meta": {
-    "title": "Gaze Questionnaire",
-    "version": 1.3
+    "title": "demo",
+    "version": 1.4
   },
-  "calibration": "9-point",
-  "filter": "kalman",
-  "dwell_time": 1100,
-  "blink_time": 350,
-  "gazepoint_blocked": false,
-  "theme": "oled_dark",
+  "params": {
+    "calibration": "dense",
+    "filter": "kalman",
+    "dwell_time": 1300,
+    "blink_time": 300,
+    "dense_rows": 1,
+    "dense_col": 1,
+    "kde_confidence": 0.6,
+    "ema_strength": 0.6,
+    "gazepoint_blocked": false,
+    "theme": "clinical"
+  },
   "items": [
     {
       "type": "info",
