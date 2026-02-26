@@ -7,6 +7,16 @@ This project is intended for **HCI / Eye-Tracking research**, usability studies,
 
 ---
 
+### ++ New Features in 1.4 ++
+
+- New Calibration- and Filter Methods from EyeTrax integrated :
+  - New Calibration: Dense Grid Calibration: Custom number of calibration points, determine rows and colums
+  - New Filters: kalman-ema with ema-alpha value, determining the strength of the smoothing
+  - KDE confidence, EMA strength and Dense-Calibration Rows and Columns (DC Rows, DC Col) are editable in the Builder Tool  
+  - *****NOTE: The Questionnaire layout structure has been changed with Version 1.4. For questionnaires with older formatting, please install the Version [v1.3.0](https://github.com/ardakizilenis/GazeQuestionnaire/archive/refs/tags/v1.3.0.zip)*****
+
+---
+
 ## Quick Start
 
 #### 1) Install the Libraries
@@ -180,18 +190,9 @@ https://github.com/user-attachments/assets/bd031e42-9109-4fa6-bee4-f70e8a2bb2ea
 
 <img width="1181" height="779" alt="BuilderUI" src="https://github.com/user-attachments/assets/81848ad0-38ca-4907-a20a-90ce3e094d57" />
 
-
 ---
 
-### ++ New Features in 1.4 ++
-
-- New Calibration- and Filter Methods from EyeTrax integrated :
-  - New Calibration: Dense Grid Calibration: Custom number of calibration points, determine rows and colums
-  - New Filters: kalman-ema with ema-alpha value, determining the strength of the smoothing
-  - KDE confidence, EMA strength and Dense-Calibration Rows and Columns (DC Rows, DC Col) are editable in the Builder Tool  
-  - *****NOTE: The Questionnaire layout structure has been changed with Version 1.4. For questionnaires with older formatting, please install the Version [v1.3.0](https://github.com/ardakizilenis/GazeQuestionnaire/archive/refs/tags/v1.3.0.zip)*****
-
----
+## Previous Releases
 
 ### ++ New Features in 1.3 ++
 
