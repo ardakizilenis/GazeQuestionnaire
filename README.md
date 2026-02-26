@@ -1,4 +1,4 @@
-# Gaze Questionnaire 1.4
+# Gaze Questionnaire v1.4.0
 
 A research-oriented application for **gaze-based questionnaires** using **eye tracking**, **blink/dwell activation**, and **smooth pursuit interaction**.  
 The system enables hands-free answering of questionnaires and logs fine-grained interaction data for later analysis.
