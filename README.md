@@ -183,7 +183,7 @@ https://github.com/user-attachments/assets/bd031e42-9109-4fa6-bee4-f70e8a2bb2ea
 
 ---
 
-### ++ New Features in 1.4++
+### ++ New Features in 1.4 ++
 
 - New Calibration- and Filter Methods from EyeTrax integrated :
   - New Calibration: Dense Grid Calibration: Custom number of calibration points, determine rows and colums
