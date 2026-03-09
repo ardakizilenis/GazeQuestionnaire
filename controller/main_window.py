@@ -388,7 +388,7 @@ class MainWindow(QMainWindow):
             print("No loggs have been saved")
             return
 
-        rows = sorted(self.log_rows, key=lambda r: (r.get("question_index") is None, r.get("question_index")))
+        rows = sorted(self.log_rows, key=lambda r: (r.get("QuestionIndex") is None, r.get("QuestionIndex")))
 
         extra_cols = sorted({k for row in rows for k in row.keys()} - set(self.LOG_COLUMNS))
         fieldnames = self.LOG_COLUMNS + extra_cols

@@ -123,6 +123,7 @@ def get_smoother(questionnaire, main_estimator):
             kalman = make_kalman()
             smoother = KalmanEMASmoother(kalman, ema_alpha=ema_alpha)
             smoother.tune(main_estimator, camera_index=0)
+            return smoother
         case "no-filter":
             smoother = NoSmoother()
             return smoother
